@@ -44,7 +44,15 @@ SETTINGS_FILE = DATA_DIR / "settings.json"
 STOCKMONITOR_SPOT_FILE = Path(os.environ.get("STOCKMONITOR_SPOT_FILE", r"D:\StockMonitor\data\spot.json"))
 SECTOR_CACHE_FILE = Path(os.environ.get("SECTOR_CACHE_FILE", r"D:\Agent_Prooogram\QQGG\data\sector_cache.json"))
 MARKET_CAP_CACHE_FILE = Path(os.environ.get("MARKET_CAP_CACHE_FILE", r"D:\Agent_Prooogram\QQGG\data\market_cap_cache.json"))
-KNOWLEDGE_DB_FILE = Path(os.environ.get("KNOWLEDGE_DB_FILE", r"D:\Agent_Prooogram\stock-knowledge-base\knowledge.db"))
+
+
+def default_knowledge_db_file() -> Path:
+    local_db = DATA_DIR / "knowledge.db"
+    legacy_db = Path(r"D:\Agent_Prooogram\stock-knowledge-base\knowledge.db")
+    return local_db if local_db.exists() or not legacy_db.exists() else legacy_db
+
+
+KNOWLEDGE_DB_FILE = Path(os.environ.get("KNOWLEDGE_DB_FILE", str(default_knowledge_db_file())))
 DEFAULT_LLM_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_LLM_MODEL = "gpt-4o-mini"
 REFRESH_SECONDS = 15 * 60

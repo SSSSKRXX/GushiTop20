@@ -88,6 +88,36 @@ http://127.0.0.1:8765
 
 配置后，主页 `盘中点评` 区域的 `LLM总结` 会结合当前盘面数据和手写点评生成复盘内容。
 
+## 本地知识库数据库
+
+`收盘突破` 页面需要 SQLite 日线数据库 `knowledge.db`。数据库体积较大，不适合提交到 GitHub；仓库只打包采集/更新脚本。
+
+默认读取路径优先级：
+
+1. 环境变量 `KNOWLEDGE_DB_FILE`
+2. 项目内 `data/knowledge.db`
+3. 当前机器兼容旧路径 `D:\Agent_Prooogram\stock-knowledge-base\knowledge.db`
+
+初始化数据库并抓取市值快照：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\knowledge_base\collect_knowledge_db.py --init --market-cap
+```
+
+首次回填历史日线数据：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\knowledge_base\collect_knowledge_db.py --backfill --resume --start 19900101 --delay 0.4
+```
+
+收盘后从 StockMonitor 快照写入当日数据：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\knowledge_base\collect_knowledge_db.py --market-cap --from-spot D:\StockMonitor\data\spot.json
+```
+
+`data/knowledge.db`、`*.db-wal`、`*.db-shm` 已在 `.gitignore` 中忽略，不会被误提交。
+
 ## 备份与回滚
 
 三层评分重构前已创建备份：

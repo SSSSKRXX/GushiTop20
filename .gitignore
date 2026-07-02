@@ -15,6 +15,9 @@ env/
 data/*
 !data/.gitkeep
 !data/*.example.json
+*.db
+*.db-shm
+*.db-wal
 
 # Local backups and generated artifacts
 backups/
