@@ -416,23 +416,25 @@ button:disabled {
 
 .market-tabs {
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 10px 12px;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  overflow: visible;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--line);
   background: #fbfcfc;
 }
 
 .market-tab {
-  flex: 0 0 auto;
-  height: 30px;
+  flex: 0 1 auto;
+  height: 28px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 0 10px;
+  padding: 0 9px;
   background: var(--surface);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .market-tab.active {
@@ -476,19 +478,19 @@ td:nth-child(1) {
 
 .market-table th:nth-child(1),
 .market-table td:nth-child(1) {
-  width: 20%;
+  width: 13%;
   text-align: left;
 }
 
 .market-table th:nth-child(2),
 .market-table td:nth-child(2) {
-  width: 10%;
+  width: 8%;
   text-align: left;
 }
 
 .market-table th:nth-child(3),
 .market-table td:nth-child(3) {
-  width: 12%;
+  width: 13%;
 }
 
 .market-table th:nth-child(4),
@@ -503,12 +505,12 @@ td:nth-child(1) {
 
 .market-table th:nth-child(6),
 .market-table td:nth-child(6) {
-  width: 16%;
+  width: 19%;
 }
 
 .market-table th:nth-child(7),
 .market-table td:nth-child(7) {
-  width: 16%;
+  width: 20%;
 }
 
 .board-table {
