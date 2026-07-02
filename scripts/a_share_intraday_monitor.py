@@ -1989,7 +1989,7 @@ def empty_market_report(
     spot: pd.DataFrame,
     phase: str,
 ) -> dict[str, Any]:
-    top20_cols = ["代码", "名称", "最新价", "涨跌幅", "成交额"]
+    top20_cols = ["代码", "名称", "今开", "最新价", "涨跌幅", "成交额"]
     auction_records = auction_preview_records(spot, args.top_n)
     if auction_records:
         evidence = f"{phase}：尚无正式成交额，当前显示集合竞价参考价/买卖盘观察，09:25 后更接近竞价结果，09:30 后切换正式盘中成交额"
@@ -2209,7 +2209,7 @@ def build_report_from_snapshot(
         combined_signal = score_signal(score_10, scoring_config.get("signals"))
 
     main_flow_col = find_main_flow_column(top20)
-    top20_cols = ["代码", "名称", "最新价", "涨跌幅", "成交额"]
+    top20_cols = ["代码", "名称", "今开", "最新价", "涨跌幅", "成交额"]
     if main_flow_col:
         top20_cols.append(main_flow_col)
     if "资金流来源" in top20.columns:
