@@ -1,0 +1,74 @@
+{
+  "llm": {
+    "baseUrl": "https://api.openai.com/v1",
+    "model": "gpt-4o-mini",
+    "apiKey": ""
+  },
+  "llmScoring": {
+    "enabled": false,
+    "maxAdjustment": 1,
+    "standard": ""
+  },
+  "breakout": {
+    "days": 3,
+    "minAmountYi": 10,
+    "minMarketCapYi": 70,
+    "maxMarketCapYi": 700
+  },
+  "scoring": {
+    "boardThemeScoring": {
+      "enabled": true,
+      "precondition": {
+        "indexCode": "KS11",
+        "indexName": "韩国综合指数",
+        "limitDownPct": -8,
+        "triggerScore": 0,
+        "signal": "韩国综合指数触及跌停，科技股日内全线看空，冲高卖出"
+      },
+      "signals": {
+        "bullishAbove": 7,
+        "neutralMin": 4,
+        "neutralMax": 7,
+        "bullishText": "积极看多，珍惜筹码，谨慎做空",
+        "neutralText": "震荡市的一天，冲高减仓，不追加筹码，积极做T，延迟买入",
+        "weakText": "科技股熊市的一天，积极卖出，延迟买入，尾盘买回（或底仓）/次日早盘杀跌抄底"
+      },
+      "groups": [
+        {
+          "name": "光纤三剑客",
+          "theme": "光纤",
+          "stocks": [
+            { "code": "601869", "name": "长飞光纤" },
+            { "code": "600487", "name": "亨通光电" },
+            { "code": "600522", "name": "中天科技" }
+          ]
+        },
+        {
+          "name": "科技三剑客",
+          "theme": "科技核心股",
+          "stocks": [
+            { "code": "300308", "name": "中际旭创" },
+            { "code": "300502", "name": "新易盛" },
+            { "code": "688256", "name": "寒武纪" }
+          ]
+        }
+      ]
+    },
+    "stockWeights": {
+      "market": 0.3,
+      "board": 0.3,
+      "stock": 0.3,
+      "risk": 0.1
+    },
+    "stockRules": {
+      "redChangePoints": 2,
+      "fundInflowPoints": 3,
+      "highTurnoverPoints": 2,
+      "highTurnoverThresholdYi": 100,
+      "mediumTurnoverPoints": 1,
+      "mediumTurnoverThresholdYi": 50,
+      "highOpenPoints": 1,
+      "boardMemberPoints": 2
+    }
+  }
+}

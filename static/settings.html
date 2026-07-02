@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>设置 - A股盘中动态解读</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <main class="app-shell settings-shell">
+      <section class="toolbar" aria-label="设置">
+        <div>
+          <p class="eyebrow">设置</p>
+          <h1>当前评分与 LLM 配置</h1>
+        </div>
+        <div class="controls">
+          <a class="button-link secondary" href="/">返回主页</a>
+          <button id="saveSettingsButton" type="button">保存设置</button>
+        </div>
+      </section>
+
+      <section class="settings-grid">
+        <article class="table-region">
+          <div class="section-head">
+            <h2>LLM 配置</h2>
+            <span id="llmKeyStatus" class="pill">--</span>
+          </div>
+          <div class="settings-form">
+            <label class="field">
+              <span>Base URL</span>
+              <input id="llmBaseUrl" class="settings-input" placeholder="https://api.openai.com/v1" />
+            </label>
+            <label class="field">
+              <span>模型</span>
+              <input id="llmModel" class="settings-input" placeholder="gpt-4o-mini" />
+            </label>
+            <label class="field">
+              <span>API Key</span>
+              <input id="llmApiKey" class="settings-input" type="password" placeholder="留空则保留已保存密钥" />
+            </label>
+            <label class="check-row">
+              <input id="clearLlmApiKey" type="checkbox" />
+              <span>清空已保存 API Key</span>
+            </label>
+          </div>
+        </article>
+
+        <article class="table-region">
+          <div class="section-head">
+            <h2>LLM 个股建议</h2>
+            <label class="switch-row">
+              <input id="llmScoringEnabled" type="checkbox" />
+              <span>启用</span>
+            </label>
+          </div>
+          <div class="settings-form">
+            <label class="field">
+              <span>最大调分幅度</span>
+              <input id="llmMaxAdjustment" class="settings-input" type="number" min="0" max="3" step="0.1" />
+            </label>
+            <label class="field wide-setting-field">
+              <span>今日建议标准</span>
+              <textarea id="llmScoringStandard" class="settings-textarea" placeholder="写下今天希望 LLM 怎么修正个股建议，例如：更看重主线板块资金持续性，弱化单日高开，更谨慎处理放量冲高回落。"></textarea>
+            </label>
+          </div>
+        </article>
+
+        <article class="table-region">
+          <div class="section-head">
+            <h2>个股建议权重</h2>
+            <span class="pill">自动归一</span>
+          </div>
+          <div class="settings-form signal-form">
+            <label class="field">
+              <span>市场权重</span>
+              <input id="stockWeightMarket" class="settings-input" type="number" min="0" step="0.05" />
+            </label>
+            <label class="field">
+              <span>板块权重</span>
+              <input id="stockWeightBoard" class="settings-input" type="number" min="0" step="0.05" />
+            </label>
+            <label class="field">
+              <span>个股权重</span>
+              <input id="stockWeightSelf" class="settings-input" type="number" min="0" step="0.05" />
+            </label>
+            <label class="field">
+              <span>风险缓冲权重</span>
+              <input id="stockWeightRisk" class="settings-input" type="number" min="0" step="0.05" />
+            </label>
+          </div>
+        </article>
+
+        <article class="table-region">
+          <div class="section-head">
+            <h2>个股基础规则</h2>
+            <span class="pill">最高按10分封顶</span>
+          </div>
+          <div class="settings-form signal-form">
+            <label class="field">
+              <span>红盘加分</span>
+              <input id="stockRuleRedChange" class="settings-input" type="number" min="0" step="0.1" />
+            </label>
+            <label class="field">
+              <span>主力净流入加分</span>
+              <input id="stockRuleFundInflow" class="settings-input" type="number" min="0" step="0.1" />
+            </label>
+            <label class="field">
+              <span>高开加分</span>
+              <input id="stockRuleHighOpen" class="settings-input" type="number" min="0" step="0.1" />
+            </label>
+            <label class="field">
+              <span>高成交阈值（亿）</span>
+              <input id="stockRuleHighTurnoverThreshold" class="settings-input" type="number" min="0" step="1" />
+            </label>
+            <label class="field">
+              <span>高成交加分</span>
+              <input id="stockRuleHighTurnover" class="settings-input" type="number" min="0" step="0.1" />
+            </label>
+            <label class="field">
+              <span>中成交阈值（亿）</span>
+              <input id="stockRuleMediumTurnoverThreshold" class="settings-input" type="number" min="0" step="1" />
+            </label>
+            <label class="field">
+              <span>中成交加分</span>
+              <input id="stockRuleMediumTurnover" class="settings-input" type="number" min="0" step="0.1" />
+            </label>
+            <label class="field">
+              <span>属于板块加分</span>
+              <input id="stockRuleBoardMember" class="settings-input" type="number" min="0" step="0.1" />
+            </label>
+          </div>
+        </article>
+
+        <article class="table-region">
+          <div class="section-head">
+            <h2>科技板块综合评分</h2>
+            <span class="pill">当前主规则</span>
+          </div>
+          <div class="settings-form signal-form">
+            <label class="field">
+              <span>前置指数代码</span>
+              <input id="boardThemeIndexCode" class="settings-input" />
+            </label>
+            <label class="field">
+              <span>跌停阈值(%)</span>
+              <input id="boardThemeLimitDown" class="settings-input" type="number" max="0" step="0.5" />
+            </label>
+            <label class="field">
+              <span>看多阈值：大于</span>
+              <input id="bullishAbove" class="settings-input" type="number" step="0.1" />
+            </label>
+            <label class="field">
+              <span>震荡下限</span>
+              <input id="neutralMin" class="settings-input" type="number" step="0.1" />
+            </label>
+            <label class="field">
+              <span>震荡上限</span>
+              <input id="neutralMax" class="settings-input" type="number" step="0.1" />
+            </label>
+            <label class="field wide-field">
+              <span>看多文案</span>
+              <input id="bullishText" class="settings-input" />
+            </label>
+            <label class="field wide-field">
+              <span>震荡文案</span>
+              <input id="neutralText" class="settings-input" />
+            </label>
+            <label class="field wide-field">
+              <span>偏弱文案</span>
+              <input id="weakText" class="settings-input" />
+            </label>
+            <label class="field wide-field">
+              <span>组合 JSON</span>
+              <textarea id="boardThemeGroupsJson" class="settings-textarea" placeholder='[{"name":"光纤三剑客","theme":"光纤","stocks":[{"code":"601869","name":"长飞光纤"}]}]'></textarea>
+            </label>
+          </div>
+        </article>
+
+        <article class="table-region">
+          <div class="section-head">
+            <h2>收盘突破筛选</h2>
+            <span class="pill">设置页默认参数</span>
+          </div>
+          <div class="settings-form signal-form">
+            <label class="field">
+              <span>最近交易日数量</span>
+              <input id="breakoutDays" class="settings-input" type="number" min="1" step="1" />
+            </label>
+            <label class="field">
+              <span>每日成交额大于（亿）</span>
+              <input id="breakoutMinAmount" class="settings-input" type="number" min="0" step="0.5" />
+            </label>
+            <label class="field">
+              <span>总市值下限（亿）</span>
+              <input id="breakoutMinCap" class="settings-input" type="number" min="0" step="5" />
+            </label>
+            <label class="field">
+              <span>总市值上限（亿）</span>
+              <input id="breakoutMaxCap" class="settings-input" type="number" min="0" step="5" />
+            </label>
+          </div>
+        </article>
+      </section>
+
+      <p id="settingsStatus" class="error-box" hidden></p>
+    </main>
+    <script src="/static/settings.js?v=20260630-settings-current-only"></script>
+  </body>
+</html>

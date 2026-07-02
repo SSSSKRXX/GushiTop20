@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A股盘中动态解读</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="toolbar" aria-label="监控设置">
+        <div>
+          <p class="eyebrow">A股盘中动态解读</p>
+          <h1>两市成交额前20与板块评分</h1>
+        </div>
+        <form id="controlForm" class="controls">
+          <label class="field">
+            <span>板块关键词</span>
+            <input id="boardInput" name="board" value="光纤" placeholder="光纤 / 芯片 / CPO" autocomplete="off" />
+          </label>
+          <button id="boardButton" type="submit">切换板块</button>
+          <button id="refreshButton" type="button">手动刷新全盘</button>
+          <a class="button-link secondary" href="/breakouts">收盘突破</a>
+          <a class="button-link" href="/settings">设置</a>
+        </form>
+      </section>
+
+      <section class="status-grid" aria-label="评分总览">
+        <article class="score-panel">
+          <span class="score-label">科技板块综合评分</span>
+          <div class="score-main">
+            <span id="boardScoreValue">--</span>
+            <small>/ 10</small>
+          </div>
+          <div class="score-bar" aria-label="评分进度">
+            <span id="boardScoreBar"></span>
+          </div>
+          <p id="boardSignalText" class="signal">等待数据</p>
+        </article>
+
+        <article class="metric-panel">
+          <span>更新时间</span>
+          <strong id="timestamp">--</strong>
+        </article>
+        <article class="metric-panel">
+          <span>下次刷新</span>
+          <strong id="countdown">15:00</strong>
+        </article>
+        <article class="metric-panel">
+          <span>板块匹配</span>
+          <strong id="boardMatch">--</strong>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <div class="table-region wide">
+          <div class="section-head">
+            <h2 id="topTableTitle">两市成交额前20</h2>
+            <span id="marketBreadth" class="pill">--</span>
+          </div>
+          <div class="table-wrap">
+            <table class="market-table">
+              <thead>
+                <tr>
+                  <th>名称</th>
+                  <th>代码</th>
+                  <th>开盘价</th>
+                  <th>最新价</th>
+                  <th>涨跌幅</th>
+                  <th>主力净流入</th>
+                  <th>成交额</th>
+                </tr>
+              </thead>
+              <tbody id="top20Body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="table-region">
+          <div class="section-head">
+            <h2>打分明细</h2>
+            <span id="rawScore" class="pill">--</span>
+          </div>
+          <div class="score-tabs">
+            <h3>KS11 前置条件</h3>
+            <div id="ks11Status" class="score-list compact"></div>
+            <h3>综合明细</h3>
+            <div id="boardScoreItems" class="score-list compact"></div>
+          </div>
+        </div>
+
+        <div class="table-region notes-panel">
+          <div class="section-head">
+            <h2>盘中点评</h2>
+            <input id="noteDate" class="note-date" type="date" />
+          </div>
+          <div class="notes-body">
+            <div class="note-picker">
+              <select id="noteEntrySelect"></select>
+              <button id="newNoteButton" type="button">新建</button>
+            </div>
+            <input id="noteTitle" class="note-title" placeholder="点评标题，例如 早盘 / 午盘 / 收盘" />
+            <textarea id="noteText" placeholder="记录当天判断、操作计划、复盘要点"></textarea>
+            <div class="notes-actions">
+              <span id="noteStatus">--</span>
+              <div class="notes-action-buttons">
+                <button id="summarizeNoteButton" type="button">LLM总结</button>
+                <button id="saveNoteButton" type="button">保存</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="table-region">
+        <div class="section-head">
+          <h2>个股建议</h2>
+          <span id="stockScoreCount" class="pill">--</span>
+        </div>
+        <div class="table-wrap">
+          <table class="stock-score-table">
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>代码</th>
+                <th>来源</th>
+                <th>市场映射</th>
+                <th>板块映射</th>
+                <th>个股基础</th>
+                <th>主力净流入</th>
+                <th>成交额</th>
+                <th>综合分</th>
+                <th>建议</th>
+              </tr>
+            </thead>
+            <tbody id="stockScoreBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="table-region">
+        <div class="section-head">
+          <h2 id="boardSectionTitle">板块高成交成分</h2>
+          <span id="boardCount" class="pill">--</span>
+        </div>
+        <div class="table-wrap">
+          <table class="board-table">
+            <thead>
+              <tr>
+                <th>组合</th>
+                <th>名称</th>
+                <th>代码</th>
+                <th>开盘价</th>
+                <th>最新价</th>
+                <th>涨跌幅</th>
+                <th>主力净流入</th>
+                <th>成交额</th>
+              </tr>
+            </thead>
+            <tbody id="boardBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p id="errorBox" class="error-box" hidden></p>
+    </main>
+    <script src="/static/app.js?v=20260701-negative-score"></script>
+  </body>
+</html>

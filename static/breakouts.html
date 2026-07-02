@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>收盘突破筛选 - A股盘中动态解读</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="toolbar" aria-label="收盘突破筛选">
+        <div>
+          <p class="eyebrow">收盘后筛选</p>
+          <h1>上市以来最高收盘价突破</h1>
+        </div>
+        <div class="controls">
+          <a class="button-link secondary" href="/">返回主页</a>
+          <button id="scanButton" type="button">开始扫描</button>
+        </div>
+      </section>
+
+      <section class="status-grid breakout-controls" aria-label="筛选条件">
+        <article class="metric-panel">
+          <span>最近交易日数量</span>
+          <input id="daysInput" type="number" min="1" step="1" value="3" />
+        </article>
+        <article class="metric-panel">
+          <span>每日成交额大于（亿）</span>
+          <input id="amountInput" type="number" min="0" step="0.5" value="10" />
+        </article>
+        <article class="metric-panel">
+          <span>总市值下限（亿）</span>
+          <input id="minCapInput" type="number" min="0" step="5" value="70" />
+        </article>
+        <article class="metric-panel">
+          <span>总市值上限（亿）</span>
+          <input id="maxCapInput" type="number" min="0" step="5" value="700" />
+        </article>
+      </section>
+
+      <section class="table-region">
+        <div class="section-head">
+          <h2>筛选结果</h2>
+          <span id="breakoutSummary" class="pill">未扫描</span>
+        </div>
+        <div class="table-wrap">
+          <table class="breakout-table">
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>代码</th>
+                <th>收盘价</th>
+                <th>涨跌幅</th>
+                <th>总市值</th>
+                <th>今日成交额</th>
+                <th id="recentAmountHeader">近3日成交额</th>
+                <th>此前最高收盘</th>
+                <th>突破幅度</th>
+              </tr>
+            </thead>
+            <tbody id="breakoutBody">
+              <tr><td colspan="9">点击开始扫描。全市场历史线筛选可能需要 1-3 分钟。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <p id="breakoutStatus" class="error-box" hidden></p>
+    </main>
+    <script src="/static/breakouts.js?v=20260701-status-rule-text"></script>
+  </body>
+</html>

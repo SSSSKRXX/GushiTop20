@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data and private local state
+data/*
+!data/.gitkeep
+!data/*.example.json
+
+# Local backups and generated artifacts
+backups/
+*.log
+web_dashboard*.png
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Generated screening exports
+*.csv
+*.xlsx
+*.docx
