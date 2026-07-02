@@ -261,6 +261,31 @@ def market_cache_expired(now: float) -> bool:
     return not cached_at or now - cached_at >= refresh_seconds
 
 
+def external_market_snapshot(current: datetime, source: str = "external") -> dict[str, Any]:
+    spot = fetch_spot()
+    top20_probe = top_turnover_table(spot, pd.DataFrame(), 20)
+    fund_error = None
+    if has_valid_turnover(top20_probe):
+        try:
+            fund = fetch_individual_fund_rank()
+            source = f"{source}+fund_flow"
+        except Exception as exc:
+            fund = pd.DataFrame()
+            fund_error = f"{type(exc).__name__}: {exc}"
+    else:
+        fund = pd.DataFrame()
+    return {
+        "loaded_at": time.time(),
+        "refresh_seconds": dynamic_refresh_seconds(current),
+        "timestamp": current,
+        "spot": spot,
+        "fund": fund,
+        "source": source,
+        "allow_external_checks": True,
+        "fund_error": fund_error,
+    }
+
+
 def get_market_snapshot(force: bool = False) -> tuple[dict[str, Any], bool]:
     now = time.time()
     current = now_cn()
@@ -280,16 +305,24 @@ def get_market_snapshot(force: bool = False) -> tuple[dict[str, Any], bool]:
             return dict(snapshot), False
         return {}, False
 
-    fund_error = None
     if is_auction_fetch_window(current):
-        spot = fetch_spot()
-        top20_probe = top_turnover_table(spot, pd.DataFrame(), 20)
-        fund = fetch_individual_fund_rank() if has_valid_turnover(top20_probe) else pd.DataFrame()
-        timestamp = current
-        source = "auction_external"
-        allow_external_checks = True
+        snapshot = external_market_snapshot(current, "auction_external")
+        with _cache_lock:
+            _market_cache.clear()
+            _market_cache.update(snapshot)
+            _report_cache.clear()
+        return dict(snapshot), True
     else:
-        spot, timestamp, source = read_stockmonitor_spot()
+        try:
+            spot, timestamp, source = read_stockmonitor_spot()
+        except Exception as exc:
+            snapshot = external_market_snapshot(current, f"external_fallback_{type(exc).__name__}")
+            snapshot["local_spot_error"] = str(exc)
+            with _cache_lock:
+                _market_cache.clear()
+                _market_cache.update(snapshot)
+                _report_cache.clear()
+            return dict(snapshot), True
         top20_probe = top_turnover_table(spot, pd.DataFrame(), 20)
         fund_error = None
         if has_valid_turnover(top20_probe):
