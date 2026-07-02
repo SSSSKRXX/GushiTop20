@@ -367,6 +367,13 @@ def empty_report_payload(board_keyword: str) -> dict[str, Any]:
         "board_scores": [],
         "stock_scores": [],
         "top20_records": [],
+        "market_tables": {
+            "fund_in_top15": [],
+            "fund_out_top15": [],
+            "fund_in_big_turnover_top10": [],
+            "fund_out_top10": [],
+            "big_turnover_drop5": [],
+        },
         "board_records": [],
         "meta": {
             "board_keyword": board_keyword,

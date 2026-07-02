@@ -5,12 +5,22 @@ const state = {
   lastPayload: null,
   notes: [],
   currentNoteId: "",
+  activeMarketView: "top20",
   nextRefreshAt: Date.now() + REFRESH_MS,
   timer: null,
   reportLoading: false,
 };
 
 const $ = (id) => document.getElementById(id);
+
+const MARKET_VIEWS = {
+  top20: { title: "两市成交额前20", countLabel: "只" },
+  fund_in_top15: { title: "今日资金流入前15名", countLabel: "只" },
+  fund_out_top15: { title: "今日资金流出前15名", countLabel: "只" },
+  fund_in_big_turnover_top10: { title: "今日资金流入前10且成交额大于50亿", countLabel: "只" },
+  fund_out_top10: { title: "今日资金流出前10名", countLabel: "只" },
+  big_turnover_drop5: { title: "今日成交额大于50亿且跌幅大于5%", countLabel: "只" },
+};
 
 async function parseJsonResponse(response) {
   const text = await response.text();
@@ -219,11 +229,45 @@ function renderStockScores(rows) {
   });
 }
 
+function marketRowsForView(report, viewKey) {
+  if (viewKey === "top20") return report.top20_records || [];
+  return report.market_tables?.[viewKey] || [];
+}
+
+function renderMarketTabs() {
+  document.querySelectorAll(".market-tab").forEach((button) => {
+    button.classList.toggle("active", button.dataset.marketView === state.activeMarketView);
+  });
+}
+
+function renderActiveMarketTable(report) {
+  const viewKey = MARKET_VIEWS[state.activeMarketView] ? state.activeMarketView : "top20";
+  const rows = marketRowsForView(report, viewKey);
+  const view = MARKET_VIEWS[viewKey];
+  $("topTableTitle").textContent =
+    viewKey === "top20" ? report.meta?.primary_table_title || view.title : view.title;
+
+  if (viewKey === "top20") {
+    const red = rows.filter((row) => Number(row["涨跌幅"]) > 0).length;
+    const green = rows.filter((row) => Number(row["涨跌幅"]) < 0).length;
+    const covered = report.meta?.top20_fund_covered ?? 0;
+    const total = report.meta?.top20_fund_total ?? rows.length;
+    const coverageText = report.meta?.auction_ready ? "" : ` · 资金覆盖 ${covered}/${total}`;
+    $("marketBreadth").textContent = report.meta?.auction_ready
+      ? `竞价红 ${red} / 绿 ${green}`
+      : `红 ${red} / 绿 ${green}${coverageText}`;
+  } else {
+    $("marketBreadth").textContent = `${rows.length} ${view.countLabel}`;
+  }
+
+  renderRows(rows, $("top20Body"), ["名称", "代码", "开盘价", "最新价", "涨跌幅", "主力净流入", "成交额"]);
+  renderMarketTabs();
+}
+
 function renderReport(payload) {
   state.lastPayload = payload;
   const report = payload.report;
   const boardScore = Number(report.board_score?.score_10 ?? report.score_10 ?? 0);
-  const top20 = report.top20_records || [];
   const boardRows = report.board_records || [];
   const stockScores = report.stock_scores || [];
 
@@ -239,18 +283,8 @@ function renderReport(payload) {
   $("boardCount").textContent = `${boardRows.length} 只`;
   $("stockScoreCount").textContent = `${stockScores.length} 只`;
   $("boardSectionTitle").textContent = report.meta?.board_table_title || `${report.meta?.board_keyword || state.board}高成交成分`;
-  $("topTableTitle").textContent = report.meta?.primary_table_title || "两市成交额前20";
 
-  const red = top20.filter((row) => Number(row["涨跌幅"]) > 0).length;
-  const green = top20.filter((row) => Number(row["涨跌幅"]) < 0).length;
-  const covered = report.meta?.top20_fund_covered ?? 0;
-  const total = report.meta?.top20_fund_total ?? top20.length;
-  const coverageText = report.meta?.auction_ready ? "" : ` · 资金覆盖 ${covered}/${total}`;
-  $("marketBreadth").textContent = report.meta?.auction_ready
-    ? `竞价红 ${red} / 绿 ${green}`
-    : `红 ${red} / 绿 ${green}${coverageText}`;
-
-  renderRows(top20, $("top20Body"), ["名称", "代码", "开盘价", "最新价", "涨跌幅", "主力净流入", "成交额"]);
+  renderActiveMarketTable(report);
   renderRows(boardRows, $("boardBody"), ["主题组合", "名称", "代码", "开盘价", "最新价", "涨跌幅", "主力净流入", "成交额"]);
   renderStockScores(stockScores);
   renderKs11Status(report.ks11_status);
@@ -416,6 +450,13 @@ $("controlForm").addEventListener("submit", (event) => {
 
 $("refreshButton").addEventListener("click", () => {
   loadReport(true);
+});
+
+document.querySelectorAll(".market-tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.activeMarketView = button.dataset.marketView || "top20";
+    if (state.lastPayload?.report) renderActiveMarketTable(state.lastPayload.report);
+  });
 });
 
 $("noteDate").value = todayDateValue();

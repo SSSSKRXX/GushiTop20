@@ -1004,6 +1004,53 @@ def records_for_web(df: pd.DataFrame, cols: list[str], max_rows: int = 20) -> li
     return records
 
 
+def market_derived_tables(spot: pd.DataFrame, fund: pd.DataFrame) -> dict[str, list[dict[str, Any]]]:
+    merged = merge_spot_with_funds(spot, fund)
+    flow_col = find_main_flow_column(merged)
+    cols = ["代码", "名称", "今开", "最新价", "涨跌幅", "成交额"]
+    if flow_col:
+        cols.append(flow_col)
+    if "资金流来源" in merged.columns:
+        cols.append("资金流来源")
+
+    if "成交额" in merged.columns:
+        merged = merged.copy()
+        merged["成交额"] = to_num(merged["成交额"])
+    if "涨跌幅" in merged.columns:
+        merged = merged.copy()
+        merged["涨跌幅"] = to_num(merged["涨跌幅"])
+    if flow_col:
+        merged = merged.copy()
+        merged[flow_col] = to_num(merged[flow_col])
+        flow_ready = merged.dropna(subset=[flow_col])
+    else:
+        flow_ready = merged.iloc[0:0].copy()
+
+    amount_ready = merged.dropna(subset=["成交额"]) if "成交额" in merged.columns else merged.iloc[0:0].copy()
+    amount_50y = 5_000_000_000
+
+    inflow = flow_ready[flow_ready[flow_col] > 0].sort_values(flow_col, ascending=False) if flow_col else flow_ready
+    outflow = flow_ready[flow_ready[flow_col] < 0].sort_values(flow_col, ascending=True) if flow_col else flow_ready
+    inflow_big_turnover = (
+        inflow[inflow["成交额"] > amount_50y].sort_values(flow_col, ascending=False)
+        if flow_col and "成交额" in inflow.columns
+        else inflow.iloc[0:0]
+    )
+    big_turnover_drop = (
+        amount_ready[(amount_ready["成交额"] > amount_50y) & (amount_ready["涨跌幅"] < -5)].sort_values("成交额", ascending=False)
+        if "涨跌幅" in amount_ready.columns
+        else amount_ready.iloc[0:0]
+    )
+
+    return {
+        "fund_in_top15": records_for_web(inflow, cols, 15),
+        "fund_out_top15": records_for_web(outflow, cols, 15),
+        "fund_in_big_turnover_top10": records_for_web(inflow_big_turnover, cols, 10),
+        "fund_out_top10": records_for_web(outflow, cols, 10),
+        "big_turnover_drop5": records_for_web(big_turnover_drop, cols, 30),
+    }
+
+
 def score_signal(score_10: float, signal_config: dict[str, Any] | None = None) -> str:
     signal_config = signal_config or DEFAULT_SCORING_CONFIG["signals"]
     bullish_above = safe_float(signal_config.get("bullishAbove")) or 6
@@ -2013,6 +2060,13 @@ def empty_market_report(
         "ks11_status": None,
         "stock_scores": [],
         "top20_records": auction_records,
+        "market_tables": {
+            "fund_in_top15": [],
+            "fund_out_top15": [],
+            "fund_in_big_turnover_top10": [],
+            "fund_out_top10": [],
+            "big_turnover_drop5": [],
+        },
         "board_records": [],
         "top20_table": format_table(top20, top20_cols, args.top_n),
         "board_table": evidence,
@@ -2246,6 +2300,7 @@ def build_report_from_snapshot(
         "ks11_status": ks11_info,
         "stock_scores": stock_scores,
         "top20_records": records_for_web(top20, top20_cols, args.top_n),
+        "market_tables": market_derived_tables(spot, fund),
         "board_records": records_for_web(board_display, board_cols, 15),
         "top20_table": format_table(top20, top20_cols, args.top_n),
         "board_table": format_table(board_display, board_cols, 15)
