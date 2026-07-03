@@ -429,6 +429,8 @@ def get_report(board_keyword: str, force: bool = False) -> dict[str, Any]:
     report["meta"]["fund_flow_error"] = snapshot.get("fund_error")
     if refreshed:
         report = maybe_apply_llm_scoring(report, settings)
+    report.setdefault("meta", {})
+    report["meta"]["report_refreshed_at"] = now_cn().strftime("%Y-%m-%d %H:%M:%S CST")
     cache_mode = "market_snapshot"
     if refreshed:
         cache_mode = "auction_external" if allow_external_checks else "stockmonitor_snapshot"

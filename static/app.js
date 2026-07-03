@@ -277,7 +277,7 @@ function renderReport(payload) {
   $("boardScoreBar").style.width = `${Math.max(0, Math.min(boardScore, 10)) * 10}%`;
   const llmError = report.meta?.llm_scoring_error ? `（${report.meta.llm_scoring_error}）` : "";
   $("boardSignalText").textContent = `${report.board_score?.signal || report.signal || "-"}${llmError}`;
-  $("timestamp").textContent = report.timestamp || "-";
+  $("timestamp").textContent = report.meta?.report_refreshed_at || report.timestamp || "-";
   $("boardMatch").textContent = report.meta?.board_match || "-";
   $("rawScore").textContent = `得分 ${report.raw_score}/${report.meta?.score_max ?? 10}`;
   $("boardCount").textContent = `${boardRows.length} 只`;
