@@ -20,7 +20,10 @@
             <input id="boardInput" name="board" value="光纤" placeholder="光纤 / 芯片 / CPO" autocomplete="off" />
           </label>
           <button id="boardButton" type="submit">切换板块</button>
-          <button id="refreshButton" type="button">手动刷新全盘</button>
+          <div class="refresh-control">
+            <button id="refreshButton" type="button">手动刷新全盘</button>
+            <small>为防止多人在接近时间点击刷新导致 API 封禁，刷新全盘仅刷新资金流。</small>
+          </div>
           <a class="button-link secondary" href="/breakouts">收盘突破</a>
           <a class="button-link" href="/settings">设置</a>
         </form>

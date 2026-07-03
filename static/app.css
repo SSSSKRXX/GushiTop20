@@ -75,6 +75,18 @@ h2 {
   gap: 10px;
 }
 
+.refresh-control {
+  display: grid;
+  gap: 5px;
+  max-width: 250px;
+}
+
+.refresh-control small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .field {
   display: grid;
   gap: 6px;
