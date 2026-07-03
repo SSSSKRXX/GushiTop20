@@ -105,7 +105,7 @@ function renderRows(rows, body, columns) {
 
 function renderLoadingRows() {
   $("top20Body").innerHTML = '<tr><td colspan="7">正在抓取行情数据，首次加载可能需要约 1 分钟...</td></tr>';
-  $("boardBody").innerHTML = '<tr><td colspan="8">等待行情数据返回...</td></tr>';
+  $("focusStockScoreGroups").innerHTML = '<p class="empty-focus">等待重点个股建议生成...</p>';
   $("stockScoreBody").innerHTML = '<tr><td colspan="11">等待评分生成...</td></tr>';
   const loadingScore = `
     <article class="score-item">
@@ -200,6 +200,136 @@ function renderFundMatchCell(row) {
   `;
 }
 
+function renderBcCell(row) {
+  const enabled = Boolean(row["ABC联动启用"]);
+  const state = row["BC联动状态"] || (enabled ? "-" : "未启用");
+  const avg = row["BC平均资金净流入比例_display"] || "-";
+  const coefficient = row["联动系数_display"] || "-";
+  return `
+    <div class="bc-cell ${enabled ? "enabled" : "disabled"}">
+      <strong>${state}</strong>
+      <span>${enabled ? `均值 ${avg} / 系数 ${coefficient}` : "普通个股"}</span>
+    </div>
+  `;
+}
+
+function appendStockDetailRow(body, row, colspan) {
+  const detail = document.createElement("tr");
+  detail.className = "stock-reason-row";
+  const reasonText = row["理由"] || "暂无明确理由";
+  const riskText = row["风险"] || "暂无额外风险";
+  const watchText = row["观察点"] || "观察下一轮价格、成交额和资金流变化";
+  const fundText = [
+    `比例 ${row["资金净流入比例_display"] || "-"}`,
+    `基础 ${row["基础资金要求_display"] || "-"}`,
+    `修正 ${row["修正后要求_display"] || "-"}`,
+    `达标率 ${row["A达标率_display"] || "-"}`,
+    row["资金结论"] || "暂无资金匹配结论",
+  ].join("；");
+  detail.innerHTML = `
+    <td colspan="${colspan}">
+      <div class="stock-detail-grid">
+        <div class="stock-detail-block">
+          <span>理由</span>
+          <p>${reasonText}</p>
+        </div>
+        <div class="stock-detail-block risk">
+          <span>风险</span>
+          <p>${riskText}</p>
+        </div>
+        <div class="stock-detail-block watch">
+          <span>观察点</span>
+          <p>${watchText}</p>
+        </div>
+        <div class="stock-detail-block fund">
+          <span>资金模型</span>
+          <p>${fundText}</p>
+        </div>
+      </div>
+    </td>
+  `;
+  body.appendChild(detail);
+}
+
+function renderFocusStockScores(rows) {
+  const container = $("focusStockScoreGroups");
+  container.innerHTML = "";
+  if (!rows.length) {
+    container.innerHTML = '<p class="empty-focus">暂无重点三剑客建议</p>';
+    return;
+  }
+
+  const grouped = rows.reduce((acc, row) => {
+    const group = row["组合"] || "未分组";
+    if (!acc.has(group)) acc.set(group, []);
+    acc.get(group).push(row);
+    return acc;
+  }, new Map());
+  const groupOrder = ["光纤三剑客", "科技三剑客"];
+  const groupNames = [
+    ...groupOrder.filter((name) => grouped.has(name)),
+    ...Array.from(grouped.keys()).filter((name) => !groupOrder.includes(name)),
+  ];
+
+  groupNames.forEach((groupName) => {
+    const groupRows = grouped.get(groupName) || [];
+    const article = document.createElement("article");
+    article.className = "focus-stock-group";
+    const names = groupRows.map((row) => row["名称"]).filter(Boolean).join("、");
+    article.innerHTML = `
+      <div class="focus-group-head">
+        <div>
+          <h3>${groupName}</h3>
+          <p>A=当前行，B/C=同组另外两只；当前覆盖：${names || "-"}</p>
+        </div>
+        <span class="pill">${groupRows.length} 只</span>
+      </div>
+      <div class="table-wrap">
+        <table class="stock-score-table focus-stock-score-table">
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>代码</th>
+              <th>开/现</th>
+              <th>涨跌幅</th>
+              <th>主力净流入</th>
+              <th>环境分</th>
+              <th>个股分</th>
+              <th>达标率</th>
+              <th>资金匹配</th>
+              <th>BC联动</th>
+              <th>综合分</th>
+              <th>建议</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    `;
+    const body = article.querySelector("tbody");
+    groupRows.forEach((row) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>${row["名称"] ?? "-"}</strong></td>
+        <td>${row["代码"] ?? "-"}</td>
+        <td>${row["今开_display"] ?? "-"} / ${row["最新价_display"] ?? "-"}</td>
+        <td class="${changeClass(row["涨跌幅"])}">${row["涨跌幅_display"] ?? "-"}</td>
+        <td>${row["主力净流入_display"] ?? "未覆盖"}</td>
+        <td>${row["环境分_display"] ?? row["环境分"] ?? "-"}</td>
+        <td>${row["个股分_display"] ?? row["个股分"] ?? row["个股基础_display"] ?? "-"}</td>
+        <td>${row["A达标率_display"] ?? "-"}</td>
+        <td>${renderFundMatchCell(row)}</td>
+        <td>${renderBcCell(row)}</td>
+        <td>${row["综合分_display"] ?? row["综合分"] ?? "-"}</td>
+        <td><strong>${row["建议"] ?? "-"}</strong></td>
+      `;
+      body.appendChild(tr);
+      appendStockDetailRow(body, row, 12);
+    });
+    container.appendChild(article);
+  });
+}
+
 function renderStockScores(rows) {
   const body = $("stockScoreBody");
   body.innerHTML = "";
@@ -213,9 +343,9 @@ function renderStockScores(rows) {
       <td><strong>${row["名称"] ?? "-"}</strong></td>
       <td>${row["代码"] ?? "-"}</td>
       <td>${row["来源"] ?? "-"}</td>
-      <td>${row["市场映射_display"] ?? row["市场映射"] ?? "-"}</td>
-      <td>${row["板块映射_display"] ?? row["板块映射"] ?? "-"}</td>
-      <td>${row["个股基础_display"] ?? row["个股基础"] ?? "-"}</td>
+      <td>${row["环境分_display"] ?? row["环境分"] ?? "-"}</td>
+      <td>${row["规则分_display"] ?? row["规则分"] ?? "-"}</td>
+      <td>${row["个股分_display"] ?? row["个股分"] ?? row["个股基础_display"] ?? "-"}</td>
       <td>${row["主力净流入_display"] ?? "未覆盖"}</td>
       <td>${renderFundMatchCell(row)}</td>
       <td>${row["成交额_display"] ?? "-"}</td>
@@ -223,40 +353,7 @@ function renderStockScores(rows) {
       <td><strong>${row["建议"] ?? "-"}</strong></td>
     `;
     body.appendChild(tr);
-    const reason = document.createElement("tr");
-    reason.className = "stock-reason-row";
-    const reasonText = row["理由"] || "暂无明确理由";
-    const riskText = row["风险"] || "暂无额外风险";
-    const watchText = row["观察点"] || "观察下一轮价格、成交额和资金流变化";
-    const fundText = [
-      `比例 ${row["资金净流入比例_display"] || "-"}`,
-      `要求 ${row["修正后要求_display"] || "-"}`,
-      `BC ${row["BC联动状态"] || "-"}`,
-      row["资金结论"] || "暂无资金匹配结论",
-    ].join("；");
-    reason.innerHTML = `
-      <td colspan="11">
-        <div class="stock-detail-grid">
-          <div class="stock-detail-block">
-            <span>理由</span>
-            <p>${reasonText}</p>
-          </div>
-          <div class="stock-detail-block risk">
-            <span>风险</span>
-            <p>${riskText}</p>
-          </div>
-          <div class="stock-detail-block watch">
-            <span>观察点</span>
-            <p>${watchText}</p>
-          </div>
-          <div class="stock-detail-block fund">
-            <span>资金模型</span>
-            <p>${fundText}</p>
-          </div>
-        </div>
-      </td>
-    `;
-    body.appendChild(reason);
+    appendStockDetailRow(body, row, 11);
   });
 }
 
@@ -299,7 +396,7 @@ function renderReport(payload) {
   state.lastPayload = payload;
   const report = payload.report;
   const boardScore = Number(report.board_score?.score_10 ?? report.score_10 ?? 0);
-  const boardRows = report.board_records || [];
+  const focusStockScores = report.focus_stock_scores || [];
   const stockScores = report.stock_scores || [];
 
   $("boardScoreValue").textContent = boardScore.toFixed(2);
@@ -311,12 +408,11 @@ function renderReport(payload) {
   $("timestamp").textContent = report.meta?.report_refreshed_at || report.timestamp || "-";
   $("boardMatch").textContent = report.meta?.board_match || "-";
   $("rawScore").textContent = `得分 ${report.raw_score}/${report.meta?.score_max ?? 10}`;
-  $("boardCount").textContent = `${boardRows.length} 只`;
+  $("focusStockScoreCount").textContent = `${focusStockScores.length} 只`;
   $("stockScoreCount").textContent = `${stockScores.length} 只`;
-  $("boardSectionTitle").textContent = report.meta?.board_table_title || `${report.meta?.board_keyword || state.board}高成交成分`;
 
   renderActiveMarketTable(report);
-  renderRows(boardRows, $("boardBody"), ["主题组合", "名称", "代码", "开盘价", "最新价", "涨跌幅", "主力净流入", "成交额"]);
+  renderFocusStockScores(focusStockScores);
   renderStockScores(stockScores);
   renderKs11Status(report.ks11_status);
   renderScoreItems(report.board_score?.items || [], "boardScoreItems");

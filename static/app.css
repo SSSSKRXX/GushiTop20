@@ -642,6 +642,94 @@ td:nth-child(1) {
   text-align: left;
 }
 
+.focus-stock-groups {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.empty-focus {
+  margin: 0;
+  padding: 14px 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.focus-stock-group {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.focus-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: #fbfcfc;
+}
+
+.focus-group-head h3 {
+  margin: 0 0 3px;
+  font-size: 15px;
+}
+
+.focus-group-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.focus-stock-score-table th:nth-child(1),
+.focus-stock-score-table td:nth-child(1) {
+  width: 88px;
+  text-align: left;
+}
+
+.focus-stock-score-table th:nth-child(2),
+.focus-stock-score-table td:nth-child(2) {
+  width: 66px;
+  text-align: left;
+}
+
+.focus-stock-score-table th:nth-child(3),
+.focus-stock-score-table td:nth-child(3),
+.focus-stock-score-table th:nth-child(4),
+.focus-stock-score-table td:nth-child(4),
+.focus-stock-score-table th:nth-child(5),
+.focus-stock-score-table td:nth-child(5),
+.focus-stock-score-table th:nth-child(6),
+.focus-stock-score-table td:nth-child(6),
+.focus-stock-score-table th:nth-child(7),
+.focus-stock-score-table td:nth-child(7),
+.focus-stock-score-table th:nth-child(8),
+.focus-stock-score-table td:nth-child(8),
+.focus-stock-score-table th:nth-child(11),
+.focus-stock-score-table td:nth-child(11) {
+  width: 70px;
+}
+
+.focus-stock-score-table th:nth-child(9),
+.focus-stock-score-table td:nth-child(9) {
+  width: 112px;
+  text-align: left;
+}
+
+.focus-stock-score-table th:nth-child(10),
+.focus-stock-score-table td:nth-child(10) {
+  width: auto;
+  text-align: left;
+}
+
+.focus-stock-score-table th:nth-child(12),
+.focus-stock-score-table td:nth-child(12) {
+  width: 88px;
+  text-align: left;
+}
+
 .stock-reason-row td {
   height: auto;
   padding: 8px 10px 12px 28px;
@@ -718,6 +806,27 @@ td:nth-child(1) {
 
 .fund-match-cell.missing strong,
 .fund-match-cell.neutral strong {
+  color: var(--muted);
+}
+
+.bc-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+.bc-cell strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.bc-cell span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.bc-cell.disabled strong {
   color: var(--muted);
 }
 

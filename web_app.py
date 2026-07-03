@@ -365,6 +365,7 @@ def empty_report_payload(board_keyword: str) -> dict[str, Any]:
         "market_score": {"score_10": 0, "signal": "等待缓存", "items": []},
         "board_score": {"score_10": 0, "signal": "等待缓存", "items": []},
         "board_scores": [],
+        "focus_stock_scores": [],
         "stock_scores": [],
         "top20_records": [],
         "market_tables": {
@@ -427,7 +428,7 @@ def get_report(board_keyword: str, force: bool = False) -> dict[str, Any]:
     report["meta"]["external_api_allowed"] = allow_external_checks
     report["meta"]["fund_flow_mode"] = "project_fetch_once" if refreshed else ("local_spot_no_fund" if snapshot.get("local_spot_only") else "cached")
     report["meta"]["fund_flow_error"] = snapshot.get("fund_error")
-    report["meta"]["stock_flow_model_version"] = "20260703"
+    report["meta"]["stock_flow_model_version"] = "20260703-abc"
     if refreshed:
         report = maybe_apply_llm_scoring(report, settings)
     report.setdefault("meta", {})
@@ -566,6 +567,7 @@ def compact_report_for_llm(report: dict[str, Any]) -> dict[str, Any]:
         ],
         "top20": top20[:20],
         "board_top": board_records[:15],
+        "focus_stock_scores": (report.get("focus_stock_scores") or [])[:10],
         "stock_scores": (report.get("stock_scores") or [])[:35],
     }
 
@@ -843,8 +845,10 @@ def llm_score_report(report: dict[str, Any], standard: str) -> dict[str, Any]:
 
 def llm_adjust_stock_scores(report: dict[str, Any], standard: str, max_adjustment: float) -> dict[str, Any]:
     api_key, base_url, model = llm_settings()
+    focus_stock_scores = report.get("focus_stock_scores") if isinstance(report.get("focus_stock_scores"), list) else []
     stock_scores = report.get("stock_scores") if isinstance(report.get("stock_scores"), list) else []
-    if not stock_scores:
+    all_stock_scores = focus_stock_scores + stock_scores
+    if not all_stock_scores:
         return report
     messages = [
         {
@@ -865,6 +869,7 @@ def llm_adjust_stock_scores(report: dict[str, Any], standard: str, max_adjustmen
                     "market_score": report.get("market_score"),
                     "board_score": report.get("board_score"),
                     "board_scores": report.get("board_scores") or [],
+                    "focus_stock_scores": focus_stock_scores,
                     "stock_scores": stock_scores,
                 },
                 ensure_ascii=False,
@@ -876,33 +881,38 @@ def llm_adjust_stock_scores(report: dict[str, Any], standard: str, max_adjustmen
     llm_rows = adjusted.get("stocks") if isinstance(adjusted.get("stocks"), list) else []
     by_code = {str(item.get("代码", "")).zfill(6): item for item in llm_rows if isinstance(item, dict)}
     allowed_actions = {"积极持有", "低吸优先", "做T观察", "冲高兑现", "暂缓买入", "减仓规避"}
-    next_scores = []
-    for item in stock_scores:
-        row = dict(item)
-        code = str(row.get("代码", "")).zfill(6)
-        llm_item = by_code.get(code)
-        if llm_item:
-            base = safe_number(row.get("综合分"))
-            requested = clamp_score(llm_item.get("final_score_10"))
-            lower = max(0.0, base - max_adjustment)
-            upper = min(10.0, base + max_adjustment)
-            final_score = max(lower, min(upper, requested))
-            row["规则分"] = base
-            row["规则分_display"] = f"{base:.2f}"
-            row["综合分"] = round(final_score, 2)
-            row["综合分_display"] = f"{final_score:.2f}"
-            action = str(llm_item.get("action") or row.get("建议") or "")
-            row["建议"] = action if action in allowed_actions else stock_action_label(final_score)
-            row["理由"] = str(llm_item.get("reason") or row.get("理由") or "")
-            row["风险"] = str(llm_item.get("risk") or "")
-            watch = llm_item.get("watch_points")
-            row["观察点"] = "；".join(str(x) for x in watch) if isinstance(watch, list) else str(watch or "")
-            row["LLM调整"] = round(final_score - base, 2)
-            row["LLM调整_display"] = f"{final_score - base:+.2f}"
-        next_scores.append(row)
-    next_scores.sort(key=lambda item: safe_number(item.get("综合分")), reverse=True)
+
+    def adjust_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        next_scores = []
+        for item in rows:
+            row = dict(item)
+            code = str(row.get("代码", "")).zfill(6)
+            llm_item = by_code.get(code)
+            if llm_item:
+                base = safe_number(row.get("综合分"))
+                requested = clamp_score(llm_item.get("final_score_10"))
+                lower = max(0.0, base - max_adjustment)
+                upper = min(10.0, base + max_adjustment)
+                final_score = max(lower, min(upper, requested))
+                row["规则分"] = base
+                row["规则分_display"] = f"{base:.2f}"
+                row["综合分"] = round(final_score, 2)
+                row["综合分_display"] = f"{final_score:.2f}"
+                action = str(llm_item.get("action") or row.get("建议") or "")
+                row["建议"] = action if action in allowed_actions else stock_action_label(final_score)
+                row["理由"] = str(llm_item.get("reason") or row.get("理由") or "")
+                row["风险"] = str(llm_item.get("risk") or "")
+                watch = llm_item.get("watch_points")
+                row["观察点"] = "；".join(str(x) for x in watch) if isinstance(watch, list) else str(watch or "")
+                row["LLM调整"] = round(final_score - base, 2)
+                row["LLM调整_display"] = f"{final_score - base:+.2f}"
+            next_scores.append(row)
+        next_scores.sort(key=lambda item: safe_number(item.get("综合分")), reverse=True)
+        return next_scores
+
     result = dict(report)
-    result["stock_scores"] = next_scores
+    result["focus_stock_scores"] = adjust_rows(focus_stock_scores)
+    result["stock_scores"] = adjust_rows(stock_scores)
     meta = dict(result.get("meta") or {})
     meta["stock_scoring_mode"] = "llm_hybrid"
     meta["llm_stock_standard"] = standard

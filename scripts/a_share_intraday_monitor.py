@@ -96,12 +96,14 @@ DEFAULT_SCORING_CONFIG = {
             "signal": "韩国综合指数触及跌停，科技股日内全线看空，冲高卖出",
         },
         "signals": {
-            "bullishAbove": 7,
-            "neutralMin": 4,
+            "bullishAbove": 8,
+            "neutralMin": 5,
             "neutralMax": 7,
-            "bullishText": "积极看多，珍惜筹码，谨慎做空",
-            "neutralText": "震荡市的一天，冲高减仓，不追加筹码，积极做T，延迟买入",
-            "weakText": "科技股熊市的一天，积极卖出，延迟买入，尾盘买回（或底仓）/次日早盘杀跌抄底",
+            "weakRepairMin": 2,
+            "bullishText": "积极做多日：珍惜筹码，谨慎做空",
+            "neutralText": "震荡做T日：冲高减仓，延迟买入",
+            "weakRepairText": "弱修复/分歧日：只做小T，尾盘再考虑",
+            "weakText": "科技股防守日：冲高卖出，不急接回",
         },
         "groups": [
             {
@@ -133,7 +135,7 @@ STOCK_FLOW_MODELS = {
         (3.0, 4.5, 0.06, "主动进攻中，资金开始确认", "资金不足则容易冲高回落", "继续持有；可小幅做T"),
         (4.5, 6.0, 0.08, "强进攻分时，进入高抛观察区", "资金不足则优先高抛T仓", "达标持有；不达标冲高减仓"),
         (6.0, 8.0, 0.12, "强势加速，需资金持续配合", "资金不足则高位震荡风险大", "达标继续看；不达标减T仓"),
-        (8.0, None, 0.175, "接近涨停/冲板博弈，必须强资金确认", "资金不足则容易炸板或回落", "看联动与封板强度；不达标减仓"),
+        (8.0, None, 0.15, "冲板/极强区，必须强资金确认", "资金不足则容易炸板或回落", "只看极强资金确认；不达标减仓"),
     ],
     "20CM": [
         (0.0, 2.0, 0.02, "低位承接，有蓄势可能", "资金不足则只是弱反弹", "可观察持有"),
@@ -142,8 +144,7 @@ STOCK_FLOW_MODELS = {
         (6.0, 8.0, 0.08, "进入强势区，需要资金确认", "资金不足则冲高回落概率上升", "观察盘口和联动"),
         (8.0, 10.0, 0.11, "20CM高抛观察区", "资金不足则优先高抛T仓", "达标继续看；不达标减仓"),
         (10.0, 13.0, 0.14, "加速区，资金必须强", "资金不足则大概率震荡回落", "不达标不追；达标持有"),
-        (13.0, 16.0, 0.18, "强加速区，进入冲板前奏", "资金不足则风险很大", "只看极强；不达标减仓"),
-        (16.0, None, 0.26, "极强冲板/封板状态", "资金不足则容易炸板", "看封单/联动；不达标减仓"),
+        (13.0, None, 0.18, "冲板/极强区，只看极强资金确认", "资金不足则风险很大，防大幅回落", "极强龙头持有；不达标减仓"),
     ],
 }
 
@@ -1087,6 +1088,15 @@ def score_signal(score_10: float, signal_config: dict[str, Any] | None = None) -
     bullish_above = safe_float(signal_config.get("bullishAbove")) or 6
     neutral_min = safe_float(signal_config.get("neutralMin")) or 4
     neutral_max = safe_float(signal_config.get("neutralMax")) or 6
+    weak_repair_min = safe_float(signal_config.get("weakRepairMin"))
+    if weak_repair_min is not None:
+        if score_10 >= bullish_above:
+            return str(signal_config.get("bullishText") or DEFAULT_SCORING_CONFIG["signals"]["bullishText"])
+        if neutral_min <= score_10 <= neutral_max:
+            return str(signal_config.get("neutralText") or DEFAULT_SCORING_CONFIG["signals"]["neutralText"])
+        if score_10 >= weak_repair_min:
+            return str(signal_config.get("weakRepairText") or signal_config.get("neutralText") or DEFAULT_SCORING_CONFIG["signals"]["neutralText"])
+        return str(signal_config.get("weakText") or DEFAULT_SCORING_CONFIG["signals"]["weakText"])
     if score_10 > bullish_above:
         return str(signal_config.get("bullishText") or DEFAULT_SCORING_CONFIG["signals"]["bullishText"])
     if neutral_min <= score_10 <= neutral_max:
@@ -1686,6 +1696,7 @@ def build_combined_board_theme_score(
             "signal": signal,
             "items": [dataclasses.asdict(item) for item in items],
             "mode": "theme_groups_combined",
+            "precondition_triggered": True,
         }
         return score, items, theme_df, {}
 
@@ -1708,6 +1719,7 @@ def build_combined_board_theme_score(
         "signal": theme_score_signal(score_10, config),
         "items": [dataclasses.asdict(item) for item in items],
         "mode": "theme_groups_combined",
+        "precondition_triggered": False,
     }
     for group in groups:
         for stock in group.get("stocks") or []:
@@ -1868,6 +1880,58 @@ def bc_linkage_state(avg_ratio: float) -> dict[str, Any]:
     }
 
 
+def fund_match_stock_score(coverage_ratio: float | None) -> tuple[float, str]:
+    if coverage_ratio is None:
+        return 0.0, "资金未覆盖，暂不确认个股强度"
+    if coverage_ratio >= 1.3:
+        return 10.0, "极强进攻，可能带动板块"
+    if coverage_ratio >= 1.1:
+        return 8.0, "强进攻，可以积极持有"
+    if coverage_ratio >= 1.0:
+        return 7.0, "达标，正常持有"
+    if coverage_ratio >= 0.8:
+        return 5.0, "勉强，不追高"
+    if coverage_ratio >= 0.5:
+        return 3.0, "涨幅虚，容易回落"
+    return 0.0, "假冲高，优先卖T仓"
+
+
+def stock_matrix_decision(environment_score: float, stock_score: float, precondition_triggered: bool = False) -> dict[str, str]:
+    if precondition_triggered:
+        return {
+            "action": "减仓规避",
+            "decision": "前置否决：只防守不低吸",
+            "discipline": "KS11触发系统性风险，科技线日内优先降风险",
+        }
+    if environment_score >= 8 and stock_score >= 8:
+        return {"action": "积极持有", "decision": "强共振进攻：积极做多，少卖T仓", "discipline": "不要预判顶部"}
+    if environment_score >= 8 and stock_score >= 5:
+        return {"action": "做T观察", "decision": "环境好，个股一般：持底仓，T仓谨慎", "discipline": "不追弱，观察能否补涨"}
+    if environment_score >= 8:
+        return {"action": "冲高兑现", "decision": "环境好但个股弱：换强不追弱，冲高减弱票", "discipline": "别幻想弱股自动修复"}
+    if environment_score >= 5 and stock_score >= 8:
+        return {"action": "做T观察", "decision": "个股强于环境：可做T但不追高", "discipline": "等回落反馈"}
+    if environment_score >= 5 and stock_score >= 5:
+        return {"action": "做T观察", "decision": "震荡做T：高抛低吸，严格执行", "discipline": "卖出靠计划，买回靠反馈"}
+    if environment_score >= 5:
+        return {"action": "冲高兑现", "decision": "弱票反抽：冲高减仓，延迟买入", "discipline": "不要急着接回"}
+    if stock_score >= 8:
+        return {"action": "暂缓买入", "decision": "弱环境孤军强攻：只观察，不重仓追", "discipline": "必须看BC是否回流"}
+    if stock_score >= 5:
+        return {"action": "冲高兑现", "decision": "弱环境普通反弹：冲高卖，尾盘再看", "discipline": "不做盘中幻想"}
+    return {"action": "减仓规避", "decision": "资金撤退：不接回，减仓防守", "discipline": "先保命"}
+
+
+def theme_focus_codes(config: dict[str, Any]) -> set[str]:
+    codes: set[str] = set()
+    for group in normalize_theme_groups(config):
+        for stock in group.get("stocks") or []:
+            code = normalize_code(stock.get("code"))
+            if code:
+                codes.add(code)
+    return codes
+
+
 def build_theme_peer_context(board_rows: pd.DataFrame, config: dict[str, Any]) -> dict[str, dict[str, Any]]:
     if board_rows.empty or "代码" not in board_rows.columns:
         return {}
@@ -1895,7 +1959,12 @@ def build_theme_peer_context(board_rows: pd.DataFrame, config: dict[str, Any]) -
     return contexts
 
 
-def stock_fund_match_profile(row: dict[str, Any], peer_context: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def stock_fund_match_profile(
+    row: dict[str, Any],
+    peer_context: dict[str, dict[str, Any]],
+    *,
+    use_bc_linkage: bool = False,
+) -> dict[str, Any]:
     code = normalize_code(row.get("代码"))
     name = row.get("名称", "-")
     change = safe_float(row.get("涨跌幅")) or 0.0
@@ -1905,14 +1974,32 @@ def stock_fund_match_profile(row: dict[str, Any], peer_context: dict[str, dict[s
     adjusted = None
     bc_avg = None
     coefficient = 1.0
-    bc_state = "无三剑客联动"
-    bc_verdict = "不在固定三剑客组合内，按个股基础资金要求判断"
+    bc_state = "未启用ABC联动" if not use_bc_linkage else "ABC联动等待覆盖"
+    bc_verdict = ""
     bc_action = ""
     status = "未覆盖"
     conclusion = "资金数据未覆盖，暂不判断涨幅与资金是否匹配"
     score_adjustment = 0.0
     score_cap = None
     rule = None
+    coverage_ratio = None
+    stock_score = 0.0
+    stock_judgement = "资金未覆盖，暂不确认个股强度"
+    ctx = peer_context.get(code) if use_bc_linkage else {}
+    peers = ctx.get("peers") if isinstance(ctx.get("peers"), list) else []
+    peer_ratios = [value for value in (row_fund_ratio(peer) for peer in peers) if value is not None]
+    peer_total = int(ctx.get("peer_total") or len(peers) or 0)
+    if peer_total and len(peer_ratios) >= peer_total:
+        bc_avg = sum(peer_ratios) / len(peer_ratios)
+        bc = bc_linkage_state(bc_avg)
+        coefficient = float(bc["coefficient"])
+        bc_state = str(bc["state"])
+        bc_verdict = str(bc["verdict"])
+        bc_action = str(bc["action"])
+    elif peer_total:
+        bc_state = "BC资金覆盖不足"
+        bc_verdict = f"B/C 资金覆盖 {len(peer_ratios)}/{peer_total}，暂按普通标准"
+        bc_action = "等待下一轮资金覆盖后再判断联动"
 
     if not model_name:
         return {
@@ -1923,12 +2010,18 @@ def stock_fund_match_profile(row: dict[str, Any], peer_context: dict[str, dict[s
             "基础资金要求": None,
             "基础资金要求_display": "-",
             "BC联动状态": "-",
-            "BC平均资金净流入比例": None,
-            "BC平均资金净流入比例_display": "-",
-            "联动系数": None,
-            "联动系数_display": "-",
+            "BC平均资金净流入比例": bc_avg,
+            "BC平均资金净流入比例_display": ratio_pct(bc_avg),
+            "联动系数": coefficient if use_bc_linkage and peer_total else None,
+            "联动系数_display": f"{coefficient:.2f}" if use_bc_linkage and peer_total else "-",
             "修正后要求": None,
             "修正后要求_display": "-",
+            "A达标率": None,
+            "A达标率_display": "-",
+            "个股分": stock_score,
+            "个股分_display": f"{stock_score:.2f}",
+            "个股判断": unsupported_reason,
+            "ABC联动启用": bool(use_bc_linkage and peer_total),
             "资金结论": unsupported_reason,
             "资金模型判断": unsupported_reason,
             "资金模型风险": unsupported_reason,
@@ -1945,13 +2038,19 @@ def stock_fund_match_profile(row: dict[str, Any], peer_context: dict[str, dict[s
             "资金净流入比例_display": ratio_pct(ratio),
             "基础资金要求": None,
             "基础资金要求_display": "-",
-            "BC联动状态": "-",
-            "BC平均资金净流入比例": None,
-            "BC平均资金净流入比例_display": "-",
-            "联动系数": None,
-            "联动系数_display": "-",
+            "BC联动状态": bc_state if use_bc_linkage else "-",
+            "BC平均资金净流入比例": bc_avg,
+            "BC平均资金净流入比例_display": ratio_pct(bc_avg),
+            "联动系数": coefficient if use_bc_linkage and peer_total else None,
+            "联动系数_display": f"{coefficient:.2f}" if use_bc_linkage and peer_total else "-",
             "修正后要求": None,
             "修正后要求_display": "-",
+            "A达标率": None,
+            "A达标率_display": "-",
+            "个股分": stock_score,
+            "个股分_display": f"{stock_score:.2f}",
+            "个股判断": "非上涨状态",
+            "ABC联动启用": bool(use_bc_linkage and peer_total),
             "资金结论": "绿盘或平盘不套用上涨资金匹配模型",
             "资金模型判断": "非上涨状态",
             "资金模型风险": "观察是否重新转强",
@@ -1969,13 +2068,19 @@ def stock_fund_match_profile(row: dict[str, Any], peer_context: dict[str, dict[s
             "资金净流入比例_display": ratio_pct(ratio),
             "基础资金要求": None,
             "基础资金要求_display": "-",
-            "BC联动状态": "-",
-            "BC平均资金净流入比例": None,
-            "BC平均资金净流入比例_display": "-",
-            "联动系数": None,
-            "联动系数_display": "-",
+            "BC联动状态": bc_state if use_bc_linkage else "-",
+            "BC平均资金净流入比例": bc_avg,
+            "BC平均资金净流入比例_display": ratio_pct(bc_avg),
+            "联动系数": coefficient if use_bc_linkage and peer_total else None,
+            "联动系数_display": f"{coefficient:.2f}" if use_bc_linkage and peer_total else "-",
             "修正后要求": None,
             "修正后要求_display": "-",
+            "A达标率": None,
+            "A达标率_display": "-",
+            "个股分": stock_score,
+            "个股分_display": f"{stock_score:.2f}",
+            "个股判断": "区间未覆盖",
+            "ABC联动启用": bool(use_bc_linkage and peer_total),
             "资金结论": f"{model_name} 未匹配到涨幅 {pct(change)} 对应区间",
             "资金模型判断": "区间未覆盖",
             "资金模型风险": "暂不使用资金匹配调分",
@@ -1985,49 +2090,38 @@ def stock_fund_match_profile(row: dict[str, Any], peer_context: dict[str, dict[s
         }
 
     base = float(rule["required_ratio"])
-    ctx = peer_context.get(code) or {}
-    peers = ctx.get("peers") if isinstance(ctx.get("peers"), list) else []
-    peer_ratios = [value for value in (row_fund_ratio(peer) for peer in peers) if value is not None]
-    peer_total = int(ctx.get("peer_total") or len(peers) or 0)
-    if peer_total and len(peer_ratios) >= peer_total:
-        bc_avg = sum(peer_ratios) / len(peer_ratios)
-        bc = bc_linkage_state(bc_avg)
-        coefficient = float(bc["coefficient"])
-        bc_state = str(bc["state"])
-        bc_verdict = str(bc["verdict"])
-        bc_action = str(bc["action"])
-    elif peer_total:
-        bc_state = "BC资金覆盖不足"
-        bc_verdict = f"B/C 资金覆盖 {len(peer_ratios)}/{peer_total}，暂按普通标准"
-        bc_action = "等待下一轮资金覆盖后再判断联动"
-
     adjusted = base * coefficient
+    bc_pass_text = f"；{bc_verdict}" if use_bc_linkage and bc_verdict else ""
+    bc_fail_text = f"；{bc_action or bc_verdict}" if use_bc_linkage and (bc_action or bc_verdict) else ""
     if ratio is None:
         conclusion = "主力净流入或成交额未覆盖，暂不判断资金匹配"
         status = "未覆盖"
-    elif ratio >= adjusted:
-        status = "达标"
-        conclusion = f"资金达标：净流入比例 {ratio_pct(ratio)} ≥ 修正要求 {ratio_pct(adjusted)}；{rule['verdict']}；{bc_verdict}"
-        score_adjustment = 0.3
     else:
-        status = "不达标"
-        gap = adjusted - ratio
-        severity = gap / adjusted if adjusted > 0 else 0.0
-        if severity >= 0.5:
-            score_adjustment = -1.0
-        elif severity >= 0.25:
-            score_adjustment = -0.7
+        coverage_ratio = ratio / adjusted if adjusted > 0 else None
+        stock_score, stock_judgement = fund_match_stock_score(coverage_ratio)
+        if ratio >= adjusted:
+            status = "达标"
+            conclusion = f"资金达标：净流入比例 {ratio_pct(ratio)} ≥ 修正要求 {ratio_pct(adjusted)}；{rule['verdict']}{bc_pass_text}"
+            score_adjustment = 0.3
         else:
-            score_adjustment = -0.4
-        if change >= 6:
-            score_adjustment = min(score_adjustment, -0.8)
-        if change >= 8:
-            score_cap = 5.8
-        elif change >= 4.5:
-            score_cap = 6.4
-        elif severity >= 0.5:
-            score_cap = 6.8
-        conclusion = f"资金不达标：净流入比例 {ratio_pct(ratio)} < 修正要求 {ratio_pct(adjusted)}；{rule['risk']}；{bc_action or bc_verdict}"
+            status = "不达标"
+            gap = adjusted - ratio
+            severity = gap / adjusted if adjusted > 0 else 0.0
+            if severity >= 0.5:
+                score_adjustment = -1.0
+            elif severity >= 0.25:
+                score_adjustment = -0.7
+            else:
+                score_adjustment = -0.4
+            if change >= 6:
+                score_adjustment = min(score_adjustment, -0.8)
+            if change >= 8:
+                score_cap = 5.8
+            elif change >= 4.5:
+                score_cap = 6.4
+            elif severity >= 0.5:
+                score_cap = 6.8
+            conclusion = f"资金不达标：净流入比例 {ratio_pct(ratio)} < 修正要求 {ratio_pct(adjusted)}；{rule['risk']}{bc_fail_text}"
 
     return {
         "资金模型": model_name,
@@ -2043,6 +2137,12 @@ def stock_fund_match_profile(row: dict[str, Any], peer_context: dict[str, dict[s
         "联动系数_display": f"{coefficient:.2f}",
         "修正后要求": adjusted,
         "修正后要求_display": ratio_pct(adjusted),
+        "A达标率": coverage_ratio,
+        "A达标率_display": "-" if coverage_ratio is None else f"{coverage_ratio:.2f}",
+        "个股分": stock_score,
+        "个股分_display": f"{stock_score:.2f}",
+        "个股判断": stock_judgement,
+        "ABC联动启用": bool(use_bc_linkage and peer_total),
         "资金结论": conclusion,
         "资金模型判断": str(rule["verdict"]),
         "资金模型风险": str(rule["risk"]),
@@ -2193,11 +2293,15 @@ def build_stock_scores(
     board_score: dict[str, Any],
     config: dict[str, Any],
     board_score_by_code: dict[str, dict[str, Any]] | None = None,
+    include_codes: set[str] | None = None,
+    exclude_codes: set[str] | None = None,
     limit: int = 35,
 ) -> list[dict[str, Any]]:
     weights = score_weights(config)
     board_score_by_code = board_score_by_code or {}
     peer_context = build_theme_peer_context(board_sorted, config)
+    include_codes = {normalize_code(code) for code in (include_codes or set()) if normalize_code(code)}
+    exclude_codes = {normalize_code(code) for code in (exclude_codes or set()) if normalize_code(code)}
     candidates: dict[str, dict[str, Any]] = {}
 
     def add_rows(df: pd.DataFrame, source: str) -> None:
@@ -2205,6 +2309,12 @@ def build_stock_scores(
             return
         for _, row in df.iterrows():
             code = normalize_code(row.get("代码"))
+            if not code:
+                continue
+            if include_codes and code not in include_codes:
+                continue
+            if exclude_codes and code in exclude_codes:
+                continue
             item = row.to_dict()
             if code in candidates:
                 old_source = candidates[code]["来源"]
@@ -2224,19 +2334,24 @@ def build_stock_scores(
         row_board_score = board_score_by_code.get(code, board_score)
         self_score, reason = stock_self_score(row, str(row.get("来源", "")), config)
         risk_ratio, risk_text, watch_text = stock_risk_profile(row, market_score, row_board_score)
+        environment_score = safe_float(row_board_score.get("score_10"))
+        if environment_score is None:
+            environment_score = safe_float(market_score.get("score_10")) or 0.0
         market_part = round(market_score["score_10"] * weights["market"], 2)
         board_part = round(row_board_score["score_10"] * weights["board"], 2)
         self_part = round(self_score * weights["stock"], 2)
         risk_part = round(RAW_SCORE_MAX * weights["risk"] * risk_ratio, 2)
         risk_deduction = round(RAW_SCORE_MAX * weights["risk"] * (1 - risk_ratio), 2)
         rule_score = round(max(0.0, min(10.0, market_part + board_part + self_part + risk_part)), 2)
-        fund_profile = stock_fund_match_profile(row, peer_context)
-        final_score = rule_score + float(fund_profile.get("资金模型调分") or 0.0)
-        score_cap = fund_profile.get("资金模型分数上限")
-        cap_value = safe_float(score_cap)
-        if cap_value is not None:
-            final_score = min(final_score, cap_value)
-        final_score = round(max(0.0, min(10.0, final_score)), 2)
+        use_bc_linkage = code in peer_context
+        fund_profile = stock_fund_match_profile(row, peer_context, use_bc_linkage=use_bc_linkage)
+        stock_score_value = safe_float(fund_profile.get("个股分")) or 0.0
+        decision = stock_matrix_decision(
+            environment_score,
+            stock_score_value,
+            bool(row_board_score.get("precondition_triggered")),
+        )
+        final_score = round(max(0.0, min(10.0, (environment_score + stock_score_value) / 2)), 2)
         flow = row_main_flow_value(row)
         match_status = str(fund_profile.get("资金匹配") or "")
         fund_conclusion = str(fund_profile.get("资金结论") or "")
@@ -2246,22 +2361,38 @@ def build_stock_scores(
             risk_text = append_unique_phrase(risk_text, fund_conclusion)
         elif match_status in {"未覆盖", "不适用"}:
             watch_text = append_unique_phrase(watch_text, fund_conclusion)
+        reason = append_unique_phrase(
+            reason,
+            f"环境分 {environment_score:.2f}，个股分 {stock_score_value:.2f}；{decision['decision']}",
+        )
+        watch_text = append_unique_phrase(watch_text, decision["discipline"])
         records.append(
             {
-                "建议": stock_action(final_score),
+                "建议": decision["action"],
                 "综合分": final_score,
                 "综合分_display": f"{final_score:.2f}",
                 "规则分": rule_score,
                 "规则分_display": f"{rule_score:.2f}",
                 "名称": row.get("名称", "-"),
                 "代码": code,
+                "组合": row.get("主题组合", ""),
                 "来源": row.get("来源", "-"),
+                "今开": row.get("今开"),
+                "今开_display": "-" if safe_float(row.get("今开")) is None else f"{safe_float(row.get('今开')):.2f}",
+                "最新价": row.get("最新价"),
+                "最新价_display": "-" if safe_float(row.get("最新价")) is None else f"{safe_float(row.get('最新价')):.2f}",
+                "涨跌幅": row.get("涨跌幅"),
+                "涨跌幅_display": pct(row.get("涨跌幅")),
+                "环境分": environment_score,
+                "环境分_display": f"{environment_score:.2f}",
                 "市场映射": market_part,
                 "市场映射_display": f"{market_part:.2f}",
                 "板块映射": board_part,
                 "板块映射_display": f"{board_part:.2f}",
-                "个股基础": self_part,
-                "个股基础_display": f"{self_part:.2f}",
+                "个股基础": stock_score_value,
+                "个股基础_display": f"{stock_score_value:.2f}",
+                "快照分": self_score,
+                "快照分_display": f"{self_score:.2f}",
                 "风险缓冲": risk_part,
                 "风险缓冲_display": f"{risk_part:.2f}",
                 "风险扣分": risk_deduction,
@@ -2273,6 +2404,8 @@ def build_stock_scores(
                 "理由": reason,
                 "风险": risk_text,
                 "观察点": watch_text,
+                "最终操作建议": decision["decision"],
+                "纪律提醒": decision["discipline"],
                 **fund_profile,
             }
         )
@@ -2373,6 +2506,7 @@ def empty_market_report(
         "board_score": score_group([]),
         "board_scores": [],
         "ks11_status": None,
+        "focus_stock_scores": [],
         "stock_scores": [],
         "top20_records": auction_records,
         "market_tables": {
@@ -2593,6 +2727,21 @@ def build_report_from_snapshot(
         board_cols.append(board_flow_col)
     if "资金流来源" in board_display.columns:
         board_cols.append("资金流来源")
+    focus_codes = theme_focus_codes(scoring_config) if use_theme_board_score else set()
+    focus_stock_scores = (
+        build_stock_scores(
+            top20,
+            board_display,
+            market_score,
+            board_score,
+            scoring_config,
+            board_score_by_code=board_score_by_code,
+            include_codes=focus_codes,
+            limit=10,
+        )
+        if focus_codes
+        else []
+    )
     stock_scores = build_stock_scores(
         top20,
         board_display,
@@ -2600,6 +2749,7 @@ def build_report_from_snapshot(
         board_score,
         scoring_config,
         board_score_by_code=board_score_by_code,
+        exclude_codes=focus_codes,
     )
 
     return {
@@ -2613,6 +2763,7 @@ def build_report_from_snapshot(
         "board_score": board_score,
         "board_scores": board_scores,
         "ks11_status": ks11_info,
+        "focus_stock_scores": focus_stock_scores,
         "stock_scores": stock_scores,
         "top20_records": records_for_web(top20, top20_cols, args.top_n),
         "market_tables": market_derived_tables(spot, fund),

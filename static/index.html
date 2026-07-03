@@ -126,26 +126,10 @@
 
       <section class="table-region">
         <div class="section-head">
-          <h2 id="boardSectionTitle">板块高成交成分</h2>
-          <span id="boardCount" class="pill">--</span>
+          <h2>重点三剑客建议</h2>
+          <span id="focusStockScoreCount" class="pill">--</span>
         </div>
-        <div class="table-wrap">
-          <table class="board-table">
-            <thead>
-              <tr>
-                <th>组合</th>
-                <th>名称</th>
-                <th>代码</th>
-                <th>开盘价</th>
-                <th>最新价</th>
-                <th>涨跌幅</th>
-                <th>主力净流入</th>
-                <th>成交额</th>
-              </tr>
-            </thead>
-            <tbody id="boardBody"></tbody>
-          </table>
-        </div>
+        <div id="focusStockScoreGroups" class="focus-stock-groups"></div>
       </section>
 
       <section class="table-region">
@@ -160,9 +144,9 @@
                 <th>名称</th>
                 <th>代码</th>
                 <th>来源</th>
-                <th>市场映射</th>
-                <th>板块映射</th>
-                <th>个股基础</th>
+                <th>环境分</th>
+                <th>规则分</th>
+                <th>个股分</th>
                 <th>主力净流入</th>
                 <th>资金匹配</th>
                 <th>成交额</th>
@@ -177,6 +161,6 @@
 
       <p id="errorBox" class="error-box" hidden></p>
     </main>
-    <script src="/static/app.js?v=20260703-stock-flow-model"></script>
+    <script src="/static/app.js?v=20260703-focus-merged"></script>
   </body>
 </html>
