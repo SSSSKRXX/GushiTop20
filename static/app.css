@@ -601,13 +601,11 @@ td:nth-child(1) {
 
 .stock-score-table th:nth-child(4),
 .stock-score-table td:nth-child(4),
+.stock-score-table th:nth-child(5),
+.stock-score-table td:nth-child(5),
 .stock-score-table th:nth-child(6),
-.stock-score-table td:nth-child(6),
-.stock-score-table th:nth-child(7),
-.stock-score-table td:nth-child(7),
-.stock-score-table th:nth-child(8),
-.stock-score-table td:nth-child(8) {
-  width: 92px;
+.stock-score-table td:nth-child(6) {
+  width: 76px;
 }
 
 .stock-score-table th:nth-child(3),
@@ -616,20 +614,31 @@ td:nth-child(1) {
   text-align: left;
 }
 
-.stock-score-table th:nth-child(5),
-.stock-score-table td:nth-child(5) {
-  width: 92px;
+.stock-score-table th:nth-child(7),
+.stock-score-table td:nth-child(7) {
+  width: 94px;
+}
+
+.stock-score-table th:nth-child(8),
+.stock-score-table td:nth-child(8) {
+  width: 118px;
+  text-align: left;
 }
 
 .stock-score-table th:nth-child(9),
 .stock-score-table td:nth-child(9) {
-  width: 76px;
-  font-weight: 700;
+  width: 84px;
 }
 
 .stock-score-table th:nth-child(10),
 .stock-score-table td:nth-child(10) {
-  width: 92px;
+  width: 70px;
+  font-weight: 700;
+}
+
+.stock-score-table th:nth-child(11),
+.stock-score-table td:nth-child(11) {
+  width: 88px;
   text-align: left;
 }
 
@@ -644,7 +653,7 @@ td:nth-child(1) {
 
 .stock-detail-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr);
   gap: 8px;
 }
 
@@ -676,6 +685,40 @@ td:nth-child(1) {
 
 .stock-detail-block.watch {
   background: #f5f9ff;
+}
+
+.stock-detail-block.fund {
+  background: #f8fbf7;
+}
+
+.fund-match-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+.fund-match-cell strong {
+  font-size: 12px;
+}
+
+.fund-match-cell span {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.fund-match-cell.pass strong {
+  color: var(--red);
+}
+
+.fund-match-cell.fail strong {
+  color: var(--green);
+}
+
+.fund-match-cell.missing strong,
+.fund-match-cell.neutral strong {
+  color: var(--muted);
 }
 
 .stock-reason-row:hover {

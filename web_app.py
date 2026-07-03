@@ -427,6 +427,7 @@ def get_report(board_keyword: str, force: bool = False) -> dict[str, Any]:
     report["meta"]["external_api_allowed"] = allow_external_checks
     report["meta"]["fund_flow_mode"] = "project_fetch_once" if refreshed else ("local_spot_no_fund" if snapshot.get("local_spot_only") else "cached")
     report["meta"]["fund_flow_error"] = snapshot.get("fund_error")
+    report["meta"]["stock_flow_model_version"] = "20260703"
     if refreshed:
         report = maybe_apply_llm_scoring(report, settings)
     report.setdefault("meta", {})

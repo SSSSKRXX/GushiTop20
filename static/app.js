@@ -106,7 +106,7 @@ function renderRows(rows, body, columns) {
 function renderLoadingRows() {
   $("top20Body").innerHTML = '<tr><td colspan="7">正在抓取行情数据，首次加载可能需要约 1 分钟...</td></tr>';
   $("boardBody").innerHTML = '<tr><td colspan="8">等待行情数据返回...</td></tr>';
-  $("stockScoreBody").innerHTML = '<tr><td colspan="10">等待评分生成...</td></tr>';
+  $("stockScoreBody").innerHTML = '<tr><td colspan="11">等待评分生成...</td></tr>';
   const loadingScore = `
     <article class="score-item">
       <header>
@@ -180,11 +180,31 @@ function renderKs11Status(status) {
   list.appendChild(card);
 }
 
+function fundMatchClass(value) {
+  if (value === "达标") return "pass";
+  if (value === "不达标") return "fail";
+  if (value === "未覆盖") return "missing";
+  return "neutral";
+}
+
+function renderFundMatchCell(row) {
+  const status = row["资金匹配"] || "-";
+  const ratio = row["资金净流入比例_display"] || "-";
+  const required = row["修正后要求_display"] || "-";
+  const model = row["资金模型"] || "-";
+  return `
+    <div class="fund-match-cell ${fundMatchClass(status)}">
+      <strong>${status}</strong>
+      <span>${model} ${ratio}/${required}</span>
+    </div>
+  `;
+}
+
 function renderStockScores(rows) {
   const body = $("stockScoreBody");
   body.innerHTML = "";
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="10">暂无个股建议</td></tr>';
+    body.innerHTML = '<tr><td colspan="11">暂无个股建议</td></tr>';
     return;
   }
   rows.forEach((row) => {
@@ -197,6 +217,7 @@ function renderStockScores(rows) {
       <td>${row["板块映射_display"] ?? row["板块映射"] ?? "-"}</td>
       <td>${row["个股基础_display"] ?? row["个股基础"] ?? "-"}</td>
       <td>${row["主力净流入_display"] ?? "未覆盖"}</td>
+      <td>${renderFundMatchCell(row)}</td>
       <td>${row["成交额_display"] ?? "-"}</td>
       <td>${row["综合分_display"] ?? row["综合分"] ?? "-"}</td>
       <td><strong>${row["建议"] ?? "-"}</strong></td>
@@ -207,8 +228,14 @@ function renderStockScores(rows) {
     const reasonText = row["理由"] || "暂无明确理由";
     const riskText = row["风险"] || "暂无额外风险";
     const watchText = row["观察点"] || "观察下一轮价格、成交额和资金流变化";
+    const fundText = [
+      `比例 ${row["资金净流入比例_display"] || "-"}`,
+      `要求 ${row["修正后要求_display"] || "-"}`,
+      `BC ${row["BC联动状态"] || "-"}`,
+      row["资金结论"] || "暂无资金匹配结论",
+    ].join("；");
     reason.innerHTML = `
-      <td colspan="10">
+      <td colspan="11">
         <div class="stock-detail-grid">
           <div class="stock-detail-block">
             <span>理由</span>
@@ -221,6 +248,10 @@ function renderStockScores(rows) {
           <div class="stock-detail-block watch">
             <span>观察点</span>
             <p>${watchText}</p>
+          </div>
+          <div class="stock-detail-block fund">
+            <span>资金模型</span>
+            <p>${fundText}</p>
           </div>
         </div>
       </td>
