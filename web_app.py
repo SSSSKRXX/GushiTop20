@@ -265,9 +265,13 @@ def external_market_snapshot(current: datetime, source: str = "external") -> dic
     spot = fetch_spot()
     top20_probe = top_turnover_table(spot, pd.DataFrame(), 20)
     fund_error = None
+    fund_attempted_at = None
+    fund_fetched_at = None
     if has_valid_turnover(top20_probe):
         try:
+            fund_attempted_at = now_cn().strftime("%Y-%m-%d %H:%M:%S CST")
             fund = fetch_individual_fund_rank()
+            fund_fetched_at = fund_attempted_at
             source = f"{source}+fund_flow"
         except Exception as exc:
             fund = pd.DataFrame()
@@ -283,6 +287,8 @@ def external_market_snapshot(current: datetime, source: str = "external") -> dic
         "source": source,
         "allow_external_checks": True,
         "fund_error": fund_error,
+        "fund_attempted_at": fund_attempted_at,
+        "fund_fetched_at": fund_fetched_at,
     }
 
 
@@ -325,9 +331,13 @@ def get_market_snapshot(force: bool = False) -> tuple[dict[str, Any], bool]:
             return dict(snapshot), True
         top20_probe = top_turnover_table(spot, pd.DataFrame(), 20)
         fund_error = None
+        fund_attempted_at = None
+        fund_fetched_at = None
         if has_valid_turnover(top20_probe):
             try:
+                fund_attempted_at = now_cn().strftime("%Y-%m-%d %H:%M:%S CST")
                 fund = fetch_individual_fund_rank()
+                fund_fetched_at = fund_attempted_at
                 source = f"{source}+fund_flow"
             except Exception as exc:
                 fund = pd.DataFrame()
@@ -346,6 +356,8 @@ def get_market_snapshot(force: bool = False) -> tuple[dict[str, Any], bool]:
         "source": source,
         "allow_external_checks": allow_external_checks,
         "fund_error": fund_error,
+        "fund_attempted_at": fund_attempted_at,
+        "fund_fetched_at": fund_fetched_at,
     }
     with _cache_lock:
         _market_cache.clear()
@@ -428,6 +440,8 @@ def get_report(board_keyword: str, force: bool = False) -> dict[str, Any]:
     report["meta"]["external_api_allowed"] = allow_external_checks
     report["meta"]["fund_flow_mode"] = "project_fetch_once" if refreshed else ("local_spot_no_fund" if snapshot.get("local_spot_only") else "cached")
     report["meta"]["fund_flow_error"] = snapshot.get("fund_error")
+    report["meta"]["fund_flow_attempted_at"] = snapshot.get("fund_attempted_at")
+    report["meta"]["fund_flow_fetched_at"] = snapshot.get("fund_fetched_at")
     report["meta"]["stock_flow_model_version"] = "20260703-abc"
     if refreshed:
         report = maybe_apply_llm_scoring(report, settings)

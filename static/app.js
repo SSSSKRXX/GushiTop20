@@ -22,6 +22,14 @@ const MARKET_VIEWS = {
   big_turnover_drop5: { title: "今日成交额大于50亿且跌幅大于5%", countLabel: "只" },
 };
 
+const CACHE_MODE_LABELS = {
+  report_cache: "报告缓存",
+  market_snapshot: "行情快照",
+  stockmonitor_snapshot: "StockMonitor快照",
+  auction_external: "集合竞价抓取",
+  empty: "暂无缓存",
+};
+
 async function parseJsonResponse(response) {
   const text = await response.text();
   try {
@@ -53,6 +61,16 @@ function signedClass(value) {
   const number = Number(value);
   if (Number.isNaN(number) || number === 0) return "neutral-value";
   return number > 0 ? "up" : "down";
+}
+
+function fetchTimeText(meta, payload) {
+  const spotTime = meta?.spot_updated_at || "-";
+  let fundText = "资金未触发";
+  if (meta?.fund_flow_fetched_at) fundText = `资金 ${meta.fund_flow_fetched_at}`;
+  else if (meta?.fund_flow_attempted_at) fundText = `资金尝试 ${meta.fund_flow_attempted_at}`;
+  else if (meta?.fund_flow_mode === "cached") fundText = "资金缓存";
+  const cacheMode = CACHE_MODE_LABELS[payload?.cacheMode] || payload?.cacheMode || "-";
+  return `行情 ${spotTime} · ${fundText} · ${cacheMode}`;
 }
 
 function flowValue(row) {
@@ -213,6 +231,20 @@ function renderBcCell(row) {
   `;
 }
 
+function renderScoreTraceCell(row) {
+  const finalScore = row["综合分_display"] ?? row["综合分"] ?? "-";
+  const ruleScore = row["规则分_display"] ?? row["规则分"] ?? "-";
+  const llmAdjustment = row["LLM调整_display"] ?? (row["LLM调整"] == null ? "-" : Number(row["LLM调整"]).toFixed(2));
+  const llmClass = llmAdjustment === "-" ? "neutral-value" : signedClass(row["LLM调整"]);
+  return `
+    <div class="score-trace">
+      <strong>${finalScore}</strong>
+      <span>规则 ${ruleScore}</span>
+      <span class="${llmClass}">LLM ${llmAdjustment}</span>
+    </div>
+  `;
+}
+
 function appendStockDetailRow(body, row, colspan) {
   const detail = document.createElement("tr");
   detail.className = "stock-reason-row";
@@ -320,7 +352,7 @@ function renderFocusStockScores(rows) {
         <td>${row["A达标率_display"] ?? "-"}</td>
         <td>${renderFundMatchCell(row)}</td>
         <td>${renderBcCell(row)}</td>
-        <td>${row["综合分_display"] ?? row["综合分"] ?? "-"}</td>
+        <td>${renderScoreTraceCell(row)}</td>
         <td><strong>${row["建议"] ?? "-"}</strong></td>
       `;
       body.appendChild(tr);
@@ -349,7 +381,7 @@ function renderStockScores(rows) {
       <td>${row["主力净流入_display"] ?? "未覆盖"}</td>
       <td>${renderFundMatchCell(row)}</td>
       <td>${row["成交额_display"] ?? "-"}</td>
-      <td>${row["综合分_display"] ?? row["综合分"] ?? "-"}</td>
+      <td>${renderScoreTraceCell(row)}</td>
       <td><strong>${row["建议"] ?? "-"}</strong></td>
     `;
     body.appendChild(tr);
@@ -395,6 +427,7 @@ function renderActiveMarketTable(report) {
 function renderReport(payload) {
   state.lastPayload = payload;
   const report = payload.report;
+  const meta = report.meta || {};
   const boardScore = Number(report.board_score?.score_10 ?? report.score_10 ?? 0);
   const focusStockScores = report.focus_stock_scores || [];
   const stockScores = report.stock_scores || [];
@@ -403,11 +436,12 @@ function renderReport(payload) {
   $("boardScoreValue").classList.remove("up", "down", "neutral-value");
   $("boardScoreValue").classList.add(signedClass(boardScore));
   $("boardScoreBar").style.width = `${Math.max(0, Math.min(boardScore, 10)) * 10}%`;
-  const llmError = report.meta?.llm_scoring_error ? `（${report.meta.llm_scoring_error}）` : "";
+  const llmError = meta?.llm_scoring_error ? `（${meta.llm_scoring_error}）` : "";
   $("boardSignalText").textContent = `${report.board_score?.signal || report.signal || "-"}${llmError}`;
-  $("timestamp").textContent = report.meta?.report_refreshed_at || report.timestamp || "-";
-  $("boardMatch").textContent = report.meta?.board_match || "-";
-  $("rawScore").textContent = `得分 ${report.raw_score}/${report.meta?.score_max ?? 10}`;
+  $("timestamp").textContent = meta?.report_refreshed_at || report.timestamp || "-";
+  $("fetchTimeMeta").textContent = fetchTimeText(meta, payload);
+  $("boardMatch").textContent = meta?.board_match || "-";
+  $("rawScore").textContent = `得分 ${report.raw_score}/${meta?.score_max ?? 10}`;
   $("focusStockScoreCount").textContent = `${focusStockScores.length} 只`;
   $("stockScoreCount").textContent = `${stockScores.length} 只`;
 
