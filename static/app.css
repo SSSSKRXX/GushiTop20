@@ -750,59 +750,59 @@ td:nth-child(1) {
 
 .focus-stock-score-table th:nth-child(1),
 .focus-stock-score-table td:nth-child(1) {
-  width: 70px;
+  width: 7%;
 }
 
 .focus-stock-score-table th:nth-child(2),
 .focus-stock-score-table td:nth-child(2) {
-  width: 58px;
+  width: 6%;
 }
 
 .focus-stock-score-table th:nth-child(3),
 .focus-stock-score-table td:nth-child(3) {
-  width: 84px;
+  width: 9%;
 }
 
 .focus-stock-score-table th:nth-child(4),
 .focus-stock-score-table td:nth-child(4) {
-  width: 58px;
+  width: 6%;
 }
 
 .focus-stock-score-table th:nth-child(5),
 .focus-stock-score-table td:nth-child(5) {
-  width: 72px;
+  width: 7%;
 }
 
 .focus-stock-score-table th:nth-child(6),
 .focus-stock-score-table td:nth-child(6),
 .focus-stock-score-table th:nth-child(7),
 .focus-stock-score-table td:nth-child(7) {
-  width: 46px;
+  width: 5%;
 }
 
 .focus-stock-score-table th:nth-child(8),
 .focus-stock-score-table td:nth-child(8) {
-  width: 54px;
+  width: 5%;
 }
 
 .focus-stock-score-table th:nth-child(9),
 .focus-stock-score-table td:nth-child(9) {
-  width: 84px;
+  width: 11%;
 }
 
 .focus-stock-score-table th:nth-child(10),
 .focus-stock-score-table td:nth-child(10) {
-  width: auto;
+  width: 18%;
 }
 
 .focus-stock-score-table th:nth-child(11),
 .focus-stock-score-table td:nth-child(11) {
-  width: 50px;
+  width: 6%;
 }
 
 .focus-stock-score-table th:nth-child(12),
 .focus-stock-score-table td:nth-child(12) {
-  width: 64px;
+  width: 8%;
 }
 
 .focus-stock-score-table .fund-match-cell span,
