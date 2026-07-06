@@ -730,6 +730,96 @@ td:nth-child(1) {
   text-align: left;
 }
 
+.focus-stock-score-table {
+  table-layout: fixed;
+  font-size: 11px;
+}
+
+.focus-stock-score-table th,
+.focus-stock-score-table td {
+  height: auto;
+  min-height: 38px;
+  overflow: visible;
+  padding: 7px 4px;
+  line-height: 1.35;
+  text-overflow: clip;
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.focus-stock-score-table th:nth-child(1),
+.focus-stock-score-table td:nth-child(1) {
+  width: 70px;
+}
+
+.focus-stock-score-table th:nth-child(2),
+.focus-stock-score-table td:nth-child(2) {
+  width: 58px;
+}
+
+.focus-stock-score-table th:nth-child(3),
+.focus-stock-score-table td:nth-child(3) {
+  width: 84px;
+}
+
+.focus-stock-score-table th:nth-child(4),
+.focus-stock-score-table td:nth-child(4) {
+  width: 58px;
+}
+
+.focus-stock-score-table th:nth-child(5),
+.focus-stock-score-table td:nth-child(5) {
+  width: 72px;
+}
+
+.focus-stock-score-table th:nth-child(6),
+.focus-stock-score-table td:nth-child(6),
+.focus-stock-score-table th:nth-child(7),
+.focus-stock-score-table td:nth-child(7) {
+  width: 46px;
+}
+
+.focus-stock-score-table th:nth-child(8),
+.focus-stock-score-table td:nth-child(8) {
+  width: 54px;
+}
+
+.focus-stock-score-table th:nth-child(9),
+.focus-stock-score-table td:nth-child(9) {
+  width: 84px;
+}
+
+.focus-stock-score-table th:nth-child(10),
+.focus-stock-score-table td:nth-child(10) {
+  width: auto;
+}
+
+.focus-stock-score-table th:nth-child(11),
+.focus-stock-score-table td:nth-child(11) {
+  width: 50px;
+}
+
+.focus-stock-score-table th:nth-child(12),
+.focus-stock-score-table td:nth-child(12) {
+  width: 64px;
+}
+
+.focus-stock-score-table .fund-match-cell span,
+.focus-stock-score-table .bc-cell span {
+  white-space: normal;
+}
+
+.focus-stock-group .stock-detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .focus-stock-group .stock-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .stock-reason-row td {
   height: auto;
   padding: 8px 10px 12px 28px;
