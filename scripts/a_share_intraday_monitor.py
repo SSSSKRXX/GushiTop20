@@ -1618,6 +1618,7 @@ def theme_red_score_item(group: dict[str, Any], rows: pd.DataFrame) -> ScoreItem
 def theme_fund_score_item(group: dict[str, Any], rows: pd.DataFrame) -> ScoreItem:
     group_name = str(group.get("name") or "自定义组合")
     theme = str(group.get("theme") or group_name)
+    expected = len(group.get("stocks") or [])
     if rows.empty:
         return ScoreItem(f"{group_name}资金流", 2, 0, False, f"{theme}核心票未读取到行情，按中性处理")
     flow_col = find_main_flow_column(rows)
@@ -1630,22 +1631,31 @@ def theme_fund_score_item(group: dict[str, Any], rows: pd.DataFrame) -> ScoreIte
     outflow_rows = valid.loc[valid[flow_col] < 0]
     inflow = len(inflow_rows)
     outflow = len(outflow_rows)
-    if inflow >= 2:
+    avg_ratio = None
+    if "成交额" in valid.columns:
+        amount = to_num(valid["成交额"])
+        ratio = valid[flow_col] / amount.where(amount > 0)
+        ratio = ratio.dropna()
+        if not ratio.empty:
+            avg_ratio = float(ratio.mean())
+
+    if inflow >= 2 and avg_ratio is not None and avg_ratio >= 0.02:
         raw_delta = 2
         verdict = f"{theme}资金积极做多"
-    elif inflow == 1:
+    elif inflow == 1 or (avg_ratio is not None and -0.01 <= avg_ratio < 0.02):
         raw_delta = 1
         verdict = f"{theme}资金冲高减仓"
-    elif len(valid) >= len(group.get("stocks") or []) and inflow == 0:
+    elif len(valid) >= expected and inflow == 0 and avg_ratio is not None and avg_ratio <= -0.02:
         raw_delta = -2
         verdict = f"{theme}资金今天承压，延迟买入"
     else:
         raw_delta = 0
-        verdict = f"{theme}资金覆盖不足，暂不按全流出扣分"
+        verdict = f"{theme}资金条件未满足，暂不加减分"
     points = theme_condition_points(raw_delta)
     leaders = "、".join(f"{row['名称']}{money_yi(row[flow_col])}" for _, row in inflow_rows.head(3).iterrows())
     laggards = "、".join(f"{row['名称']}{money_yi(row[flow_col])}" for _, row in outflow_rows.head(3).iterrows())
-    evidence = f"{group_name}主力净流入 {inflow} 只、净流出 {outflow} 只（覆盖 {len(valid)}/{len(group.get('stocks') or [])}）；流入: {leaders or '-'}；流出: {laggards or '-'}；{verdict}"
+    avg_text = ratio_pct(avg_ratio)
+    evidence = f"{group_name}主力净流入 {inflow} 只、净流出 {outflow} 只，平均资金比例 {avg_text}（覆盖 {len(valid)}/{expected}）；流入: {leaders or '-'}；流出: {laggards or '-'}；{verdict}"
     return ScoreItem(f"{group_name}资金流", 2, points, raw_delta > 0, evidence)
 
 
