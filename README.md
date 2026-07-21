@@ -38,6 +38,8 @@ http://127.0.0.1:8765
 
 刚 clone 下来时不需要先准备数据库或 StockMonitor 快照，网页可以直接打开。首页第一次进入会优先读取缓存；如果没有缓存，点击 `手动刷新全盘` 会使用公开行情源抓取一次全盘数据。接入本地 StockMonitor 后，网页会优先读取本地快照，减少盘中外部 API 调用。
 
+换电脑时不需要迁移旧的 StockMonitor 程序目录。仓库已经包含兼容采集器和计划任务安装脚本，完整步骤见 [换电脑与 StockMonitor 配置指南](docs/MIGRATION_AND_STOCKMONITOR.md)。
+
 页面会展示：
 
 - 两市成交额前 20 股票
@@ -115,7 +117,7 @@ http://127.0.0.1:8765
 收盘后从 StockMonitor 快照写入当日数据：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\knowledge_base\collect_knowledge_db.py --market-cap --from-spot D:\StockMonitor\data\spot.json
+.\.venv\Scripts\python.exe scripts\knowledge_base\collect_knowledge_db.py --market-cap --from-spot .\data\stockmonitor\spot.json
 ```
 
 `data/knowledge.db`、`*.db-wal`、`*.db-shm` 已在 `.gitignore` 中忽略，不会被误提交。

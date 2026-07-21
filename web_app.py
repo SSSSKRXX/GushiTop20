@@ -18,6 +18,7 @@ import pandas as pd
 import akshare as ak
 import requests
 from flask import Flask, jsonify, request, send_from_directory
+from dotenv import load_dotenv
 
 from scripts.a_share_intraday_monitor import (
     DEFAULT_SCORING_CONFIG,
@@ -39,11 +40,38 @@ from scripts.a_share_intraday_monitor import (
 ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
 DATA_DIR = ROOT / "data"
+load_dotenv(ROOT / ".env")
 NOTES_FILE = DATA_DIR / "notes.json"
 SETTINGS_FILE = DATA_DIR / "settings.json"
-STOCKMONITOR_SPOT_FILE = Path(os.environ.get("STOCKMONITOR_SPOT_FILE", r"D:\StockMonitor\data\spot.json"))
-SECTOR_CACHE_FILE = Path(os.environ.get("SECTOR_CACHE_FILE", r"D:\Agent_Prooogram\QQGG\data\sector_cache.json"))
-MARKET_CAP_CACHE_FILE = Path(os.environ.get("MARKET_CAP_CACHE_FILE", r"D:\Agent_Prooogram\QQGG\data\market_cap_cache.json"))
+
+
+def local_or_legacy_path(local_path: Path, legacy_path: Path) -> Path:
+    return local_path if local_path.exists() or not legacy_path.exists() else legacy_path
+
+
+STOCKMONITOR_SPOT_FILE = Path(
+    os.environ.get(
+        "STOCKMONITOR_SPOT_FILE",
+        str(local_or_legacy_path(DATA_DIR / "stockmonitor" / "spot.json", Path(r"D:\StockMonitor\data\spot.json"))),
+    )
+)
+SECTOR_CACHE_FILE = Path(
+    os.environ.get(
+        "SECTOR_CACHE_FILE",
+        str(local_or_legacy_path(DATA_DIR / "sector_cache.json", Path(r"D:\Agent_Prooogram\QQGG\data\sector_cache.json"))),
+    )
+)
+MARKET_CAP_CACHE_FILE = Path(
+    os.environ.get(
+        "MARKET_CAP_CACHE_FILE",
+        str(
+            local_or_legacy_path(
+                DATA_DIR / "market_cap_cache.json",
+                Path(r"D:\Agent_Prooogram\QQGG\data\market_cap_cache.json"),
+            )
+        ),
+    )
+)
 
 
 def default_knowledge_db_file() -> Path:
